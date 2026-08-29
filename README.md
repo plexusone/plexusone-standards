@@ -10,7 +10,7 @@ repo is where PlexusOne's own configuration of each one lives.
 | Domain | Spec product | Status |
 |--------|--------------|--------|
 | [`design-system/`](design-system/) | [design-system-spec](https://github.com/plexusone/design-system-spec) | Active — design tokens for marketing site, web apps, presentations, doc sites |
-| `api/` | [api-style-spec](https://github.com/plexusone/api-style-spec) | Planned — the `plexusone-rest` REST API style profile |
+| [`api/rest/`](api/rest/) | [api-style-spec](https://github.com/plexusone/api-style-spec) | Active — the `plexusone-rest` REST API style profile |
 
 Future domains (module/product naming conventions, PRN scheme
 cross-references) land here as they're specced; see

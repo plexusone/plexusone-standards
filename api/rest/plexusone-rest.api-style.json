@@ -1,0 +1,746 @@
+{
+  "$schema": "https://raw.githubusercontent.com/plexusone/api-style-spec/main/schema/api-style-spec.schema.json",
+  "name": "PlexusOne REST API Guidelines",
+  "version": "1.0.0",
+  "description": "House REST API style guide for PlexusOne products (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook) and the crossforge interop contract. Derived from the api-style-spec default profile with PlexusOne-specific rules for PRN resource references, authorization scopes, run resources, and streaming. Self-contained rather than relying on `extends` resolution (the api-style-spec loader treats `extends` as schema-only metadata, not inherited rules) — restated rules cite their source as `default PO-xxx`.",
+  "extends": [
+    "default"
+  ],
+  "metadata": {
+    "author": "PlexusOne",
+    "license": "MIT",
+    "repository": "https://github.com/plexusone/plexusone-standards",
+    "lastUpdated": "2026-08-27"
+  },
+  "principles": [
+    {
+      "id": "go-first-contracts",
+      "title": "Go Types Are the Source of Truth",
+      "description": "API schemas are generated from Go types (Huma v2, invopop/jsonschema), never hand-authored. The OpenAPI 3.1 document is a build artifact committed alongside the code that produced it."
+    },
+    {
+      "id": "suite-consistency",
+      "title": "One Suite, One Surface",
+      "description": "All Forge products expose the same API conventions so a client, SDK, or agent that learns one Forge API can use them all. Consistency across products outranks local optimization within one product."
+    },
+    {
+      "id": "interop-native",
+      "title": "Interop-Native Resources",
+      "description": "Every addressable resource has a PRN (PlexusOne Resource Name, a resourceref-validated prn:// URI) and every API is a potential crossforge invocation target. Cross-product references always use PRNs, never bare IDs or ad hoc URLs."
+    },
+    {
+      "id": "agent-consumable",
+      "title": "Agent-Consumable by Construction",
+      "description": "APIs are designed to be projected into agent tools mechanically (omniskill's OpenAPI loader, MCP). Every operation has a precise operationId, summary, description, and typed request/response schemas."
+    },
+    {
+      "id": "library-first",
+      "title": "Library First, Thin HTTP",
+      "description": "HTTP handlers are thin adapters over importable service-layer packages. Business logic is testable without the server."
+    },
+    {
+      "id": "evolvability",
+      "title": "Additive Evolution",
+      "description": "Within a major version, changes are additive only. Breaking changes require a new version segment and a deprecation lifecycle for the old one."
+    }
+  ],
+  "categories": [
+    {
+      "id": "general",
+      "title": "General Guidelines",
+      "description": "Fundamental requirements for all PlexusOne APIs"
+    },
+    {
+      "id": "naming",
+      "title": "Naming Conventions",
+      "description": "Property, resource, and identifier naming"
+    },
+    {
+      "id": "urls",
+      "title": "URL Design",
+      "description": "Resource-oriented URL patterns"
+    },
+    {
+      "id": "http-methods",
+      "title": "HTTP Methods",
+      "description": "HTTP verb usage and semantics"
+    },
+    {
+      "id": "http-status",
+      "title": "HTTP Status Codes",
+      "description": "Status code usage"
+    },
+    {
+      "id": "request-response",
+      "title": "Request & Response",
+      "description": "JSON payload structure and conventions"
+    },
+    {
+      "id": "errors",
+      "title": "Error Handling",
+      "description": "RFC 9457 error responses"
+    },
+    {
+      "id": "pagination",
+      "title": "Pagination",
+      "description": "Cursor-based pagination"
+    },
+    {
+      "id": "versioning",
+      "title": "Versioning & Compatibility",
+      "description": "API versioning, deprecation, and breaking-change policy"
+    },
+    {
+      "id": "security",
+      "title": "Security & Authorization",
+      "description": "SystemForge-based authentication and scope conventions"
+    },
+    {
+      "id": "interop",
+      "title": "Crossforge Interop",
+      "description": "PRN references, invocation, and run resources"
+    },
+    {
+      "id": "streaming",
+      "title": "Streaming & Long-Running Operations",
+      "description": "SSE, WebSocket, and async run patterns"
+    },
+    {
+      "id": "documentation",
+      "title": "Documentation",
+      "description": "OpenAPI specification requirements"
+    }
+  ],
+  "rules": [
+    {
+      "id": "PX-001",
+      "title": "Provide OpenAPI 3.1 specification generated from Go types",
+      "category": "general",
+      "severity": "error",
+      "description": "All product APIs MUST publish an OpenAPI 3.1 specification. The specification MUST be generated from Go types (Huma v2 typed handlers or invopop/jsonschema), never hand-authored, and committed alongside the code that produces it.",
+      "rationale": "OpenAPI 3.1 aligns with JSON Schema draft 2020-12 and enables SDK generation, agent-tool projection (omniskill's OpenAPI loader, MCP), and contract diffing in CI. Generating from Go types keeps one source of truth per the PlexusOne Go-first convention.",
+      "examples": {
+        "good": [
+          "openapi: 3.1.0 (generated by Huma from typed handlers)"
+        ],
+        "bad": [
+          "swagger: 2.0",
+          "Hand-maintained openapi.yaml drifting from handlers"
+        ]
+      },
+      "enforcement": {
+        "type": "spectral",
+        "function": "pattern",
+        "given": {
+          "paths": [
+            "$.openapi"
+          ]
+        },
+        "options": {
+          "match": "^3\\.1\\."
+        }
+      },
+      "references": [
+        {
+          "title": "default PO-001, PlexusOne org conventions"
+        }
+      ]
+    },
+    {
+      "id": "PX-002",
+      "title": "Use camelCase for property names",
+      "category": "naming",
+      "severity": "error",
+      "description": "All JSON property names in API and document surfaces MUST use camelCase (e.g., ruleId, createdAt, conformanceLevels). Exceptions: external specs always win (OpenAI-compatible endpoints use snake_case per the omniagent-rest profile; OTel/OTLP follow semconv), and custom telemetry event schemas use snake_case per the PlexusOne JSON & Naming Conventions.",
+      "rationale": "camelCase matches the PlexusOne convention for API/document formats and generates idiomatic clients. Deviating surfaces are governed by their own profiles rather than ad hoc exceptions.",
+      "examples": {
+        "good": [
+          "ruleId",
+          "createdAt",
+          "orgId",
+          "conformanceLevels"
+        ],
+        "bad": [
+          "rule_id (snake_case on an API surface)",
+          "RuleId (PascalCase)",
+          "rule-id (kebab-case)"
+        ]
+      },
+      "enforcement": {
+        "type": "spectral",
+        "function": "pattern",
+        "given": {
+          "paths": [
+            "$.components.schemas[*].properties[*]~"
+          ]
+        },
+        "options": {
+          "match": "^[a-z$][a-zA-Z0-9]*$"
+        }
+      },
+      "references": [
+        {
+          "title": "default PO-002, plexusone org CLAUDE.md JSON & Naming Conventions"
+        }
+      ]
+    },
+    {
+      "id": "PX-003",
+      "title": "Use kebab-case URL paths under /api/v{N}/",
+      "category": "urls",
+      "severity": "error",
+      "description": "Product API paths MUST be kebab-case and live under a versioned prefix /api/v1/ (DashForge convention). Utility endpoints (/health, /livez, /readyz, /docs, /openapi.*, /.well-known/*) are exempt from the version prefix. OpenAI-compatible surfaces (/v1/chat/completions) follow the omniagent-rest profile instead.",
+      "rationale": "A uniform /api/v{N} prefix across the Forge suite makes versioning explicit and lets the multiapp host route and gate consistently. Kebab-case avoids case-sensitivity issues and matches the org URL convention.",
+      "examples": {
+        "good": [
+          "/api/v1/notebooks",
+          "/api/v1/style-profiles/{id}",
+          "/health",
+          "/docs"
+        ],
+        "bad": [
+          "/api/v1/styleProfiles",
+          "/notebooks (unversioned product endpoint)",
+          "/api/v1/Notebook_Runs"
+        ]
+      },
+      "enforcement": {
+        "type": "spectral",
+        "function": "pattern",
+        "given": {
+          "paths": [
+            "$.paths[*]~"
+          ]
+        },
+        "options": {
+          "match": "^/(api/v[0-9]+/[a-z0-9\\-/{}]+|health|livez|readyz|docs.*|openapi.*|\\.well-known/.*|v[0-9]+/[a-z0-9\\-/{}]+)$"
+        }
+      },
+      "references": [
+        {
+          "title": "default PO-003/PO-005, DashForge /api/v1 convention"
+        }
+      ]
+    },
+    {
+      "id": "PX-004",
+      "title": "Use plural nouns for collection resources",
+      "category": "urls",
+      "severity": "error",
+      "description": "Collection resources MUST be plural nouns: /notebooks not /notebook, /workflows not /workflow.",
+      "rationale": "Plural collections are the suite-wide convention; GET /notebooks returns many, GET /notebooks/{id} returns one.",
+      "examples": {
+        "good": [
+          "/api/v1/notebooks",
+          "/api/v1/workflows/{id}/runs"
+        ],
+        "bad": [
+          "/api/v1/notebook",
+          "/api/v1/run-list"
+        ]
+      },
+      "judge": {
+        "prompt": "Check whether all collection endpoints use plural nouns for resource segments.",
+        "passCriteria": [
+          "All collection endpoints use plural nouns"
+        ],
+        "failCriteria": [
+          "Singular nouns used for collection segments"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "default PO-004"
+        }
+      ]
+    },
+    {
+      "id": "PX-005",
+      "title": "Use standard HTTP methods correctly",
+      "category": "http-methods",
+      "severity": "error",
+      "description": "GET (read, no side effects), POST (create or invoke), PUT (full replace), PATCH (partial update), DELETE (remove). Verbs never appear in paths except for invocation actions modeled as sub-resources (e.g., POST /api/v1/notebooks/{id}/runs to start a run).",
+      "rationale": "Correct method semantics enable caching and idempotency guarantees. Modeling invocation as run-resource creation (rather than /execute verbs) keeps long-running operations resource-oriented.",
+      "examples": {
+        "good": [
+          "GET /api/v1/notebooks/{id}",
+          "POST /api/v1/notebooks/{id}/runs",
+          "DELETE /api/v1/notebooks/{id}"
+        ],
+        "bad": [
+          "POST /api/v1/notebooks/{id}/delete",
+          "GET /api/v1/runNotebook?id=x"
+        ]
+      },
+      "judge": {
+        "prompt": "Verify HTTP methods follow REST semantics and that invocation is modeled as creating a run sub-resource rather than verb paths.",
+        "passCriteria": [
+          "GET has no side effects",
+          "Invocations are POSTs creating run resources",
+          "No verb-only path segments like /delete or /execute"
+        ],
+        "failCriteria": [
+          "Actions expressed as verb paths",
+          "GET with side effects"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "default PO-008"
+        }
+      ]
+    },
+    {
+      "id": "PX-006",
+      "title": "Return 201 with Location for creation, 204 for deletion",
+      "category": "http-status",
+      "severity": "warn",
+      "description": "POST creating a resource SHOULD return 201 Created with a Location header. Successful DELETE SHOULD return 204 No Content. POST starting an asynchronous run SHOULD return 202 Accepted with the run resource in the body (see PX-012).",
+      "rationale": "Explicit creation and deletion semantics; 202 distinguishes accepted-but-running work from completed creation.",
+      "examples": {
+        "good": [
+          "HTTP/1.1 201 Created\\nLocation: /api/v1/notebooks/nb_abc123",
+          "HTTP/1.1 202 Accepted (run started)",
+          "HTTP/1.1 204 No Content (deleted)"
+        ],
+        "bad": [
+          "HTTP/1.1 200 OK for creation with no Location"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "default PO-010/PO-011"
+        }
+      ]
+    },
+    {
+      "id": "PX-007",
+      "title": "Use RFC 9457 Problem Details for errors",
+      "category": "errors",
+      "severity": "error",
+      "description": "All error responses MUST use RFC 9457 Problem Details (application/problem+json) with type, title, status, and detail. Product-specific extension members use camelCase.",
+      "rationale": "One error shape across the Forge suite means one error handler in every client, SDK, and agent tool wrapper.",
+      "examples": {
+        "good": [
+          "{\"type\": \"https://plexusone.dev/problems/validation\", \"title\": \"Validation failed\", \"status\": 400, \"detail\": \"cellId is required\", \"invalidParams\": [...]}"
+        ],
+        "bad": [
+          "{\"error\": \"bad request\"}",
+          "{\"code\": 400, \"message\": \"oops\"}"
+        ]
+      },
+      "judge": {
+        "prompt": "Check that 4xx/5xx responses reference an RFC 9457 Problem Details schema (application/problem+json).",
+        "passCriteria": [
+          "Error responses use application/problem+json with type/title/status/detail"
+        ],
+        "failCriteria": [
+          "Ad hoc error envelopes",
+          "Errors returned as plain strings"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "default PO-006"
+        }
+      ]
+    },
+    {
+      "id": "PX-008",
+      "title": "Use cursor-based pagination",
+      "category": "pagination",
+      "severity": "warn",
+      "description": "Collection endpoints SHOULD use cursor-based pagination: request parameters cursor and limit; response envelope with items and nextCursor (absent or null when exhausted).",
+      "rationale": "Cursors remain correct under concurrent writes and scale past offset limits; a single envelope shape keeps SDK generation uniform.",
+      "examples": {
+        "good": [
+          "GET /api/v1/notebooks?cursor=eyJpZCI6...&limit=50 -> {\"items\": [...], \"nextCursor\": \"...\"}"
+        ],
+        "bad": [
+          "GET /api/v1/notebooks?page=3&pageSize=50",
+          "Unbounded collection responses"
+        ]
+      },
+      "judge": {
+        "prompt": "Check that list endpoints accept cursor/limit parameters and return an items array with nextCursor.",
+        "passCriteria": [
+          "Cursor-based pagination with items/nextCursor envelope"
+        ],
+        "failCriteria": [
+          "Offset/page-number pagination on new endpoints",
+          "Unbounded lists"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "default PO-007"
+        }
+      ]
+    },
+    {
+      "id": "PX-009",
+      "title": "Use prefixed string identifiers and ISO 8601 UTC timestamps",
+      "category": "request-response",
+      "severity": "error",
+      "description": "Resource identifiers MUST be strings with a resource-type prefix (nb_, run_, wf_, agt_). Date-time values MUST be ISO 8601 in UTC (2026-08-27T14:30:00Z); dates as YYYY-MM-DD.",
+      "rationale": "Prefixed string IDs are self-describing in logs and PRNs, support UUID/ULID backends, and avoid integer overflow. ISO 8601 UTC is unambiguous and sortable.",
+      "examples": {
+        "good": [
+          "nb_01J8ZK3V9XQ4",
+          "run_abc123",
+          "2026-08-27T14:30:00Z"
+        ],
+        "bad": [
+          "12345 (integer id)",
+          "01/15/2026",
+          "1705329000 (epoch in JSON)"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "default PO-020/PO-021"
+        }
+      ]
+    },
+    {
+      "id": "PX-010",
+      "title": "Authenticate with SystemForge: Bearer tokens for APIs, BFF sessions for first-party web",
+      "category": "security",
+      "severity": "error",
+      "description": "APIs MUST authenticate via SystemForge: OAuth 2.0 / JWT Bearer tokens (including RFC 7523 service accounts and API keys) for programmatic access. First-party web frontends use SystemForge BFF server-side sessions (HTTP-only cookies) and MUST NOT expose tokens to the browser. securitySchemes MUST be of type http (bearer), oauth2, or openIdConnect.",
+      "rationale": "One identity platform across the suite: SystemForge owns authn (Fosite OAuth2/OIDC), so no Forge rolls its own token format, and agents/services use workload identity rather than user credentials.",
+      "examples": {
+        "good": [
+          "Authorization: Bearer <systemforge-issued JWT>",
+          "securitySchemes: {bearerAuth: {type: http, scheme: bearer}}"
+        ],
+        "bad": [
+          "X-API-Key: secret123 as the only scheme",
+          "JWTs stored in browser localStorage"
+        ]
+      },
+      "enforcement": {
+        "type": "spectral",
+        "function": "enumeration",
+        "given": {
+          "paths": [
+            "$.components.securitySchemes[*].type"
+          ]
+        },
+        "options": {
+          "values": [
+            "http",
+            "oauth2",
+            "openIdConnect"
+          ]
+        }
+      },
+      "references": [
+        {
+          "title": "SystemForge session/bff and session/middleware; AgentForge BFF precedent"
+        }
+      ]
+    },
+    {
+      "id": "PX-011",
+      "title": "Name OAuth scopes as {app}:{resource}:{verb}",
+      "category": "security",
+      "severity": "error",
+      "description": "OAuth scopes MUST follow the suite convention {app}:{resource}:{verb}, e.g. dashforge:notebook:run, actionforge:workflow:trigger. Authorization uses the two-gate model: the principal's role permission AND the token scope must both allow the action.",
+      "rationale": "App-namespaced scopes map one-to-one onto SystemForge authz resource types ({app}.{resource}) and PRN app/resourceType segments, so a scope, a resource type, and a PRN all describe the same thing.",
+      "examples": {
+        "good": [
+          "dashforge:notebook:run",
+          "actionforge:workflow:trigger",
+          "agentforge:agent:read"
+        ],
+        "bad": [
+          "notebooks.run (no app namespace)",
+          "admin (unscoped)",
+          "dashforge_notebook_run"
+        ]
+      },
+      "enforcement": {
+        "type": "spectral",
+        "function": "pattern",
+        "given": {
+          "paths": [
+            "$.components.securitySchemes[*].flows[*].scopes[*]~"
+          ]
+        },
+        "options": {
+          "match": "^[a-z][a-z0-9]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$"
+        }
+      },
+      "references": [
+        {
+          "title": "ActionForge authz package, SystemForge INIT-SYSTEMFORGE-001 scope convention"
+        }
+      ]
+    },
+    {
+      "id": "PX-012",
+      "title": "Model long-running work as run resources with PRNs and normalized status",
+      "category": "streaming",
+      "severity": "error",
+      "description": "Long-running operations MUST be modeled as run resources: POST creates the run (202 Accepted), the response body carries the run's id, prn, and status, and GET on the run resource polls it. Run status MUST use the normalized crossforge vocabulary (PENDING, RUNNING, SUCCEEDED, FAILED, CANCELLED, TIMED_OUT) — never product-local status enums.",
+      "rationale": "Every Forge starts runs (workflow runs, notebook runs, agent runs). One run shape and one status vocabulary give the suite a single lineage, polling, and UI model, and make any run a crossforge invocation result.",
+      "examples": {
+        "good": [
+          "POST /api/v1/notebooks/{id}/runs -> 202 {\"id\": \"run_abc\", \"prn\": \"prn://plexusone/dashforge/org_1/notebook-run/run_abc\", \"status\": \"RUNNING\"}",
+          "GET /api/v1/notebooks/{id}/runs/{runId} -> {\"status\": \"SUCCEEDED\", ...}"
+        ],
+        "bad": [
+          "POST /api/v1/notebooks/{id}/execute blocking for minutes",
+          "\"status\": \"done\" (product-local vocabulary)"
+        ]
+      },
+      "judge": {
+        "prompt": "Check that long-running operations are exposed as run sub-resources returning 202 with id/prn/status, and that status enums use PENDING/RUNNING/SUCCEEDED/FAILED/CANCELLED/TIMED_OUT.",
+        "passCriteria": [
+          "Runs are resources with GET polling",
+          "202 Accepted on run creation",
+          "Normalized status enum"
+        ],
+        "failCriteria": [
+          "Blocking endpoints for long work",
+          "Custom status vocabularies"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "crossforge run.RunStatus vocabulary"
+        }
+      ]
+    },
+    {
+      "id": "PX-013",
+      "title": "Reference cross-product resources by PRN",
+      "category": "interop",
+      "severity": "error",
+      "description": "Any field referencing a resource owned by another Forge product MUST carry a PRN — a prn:// URI validated against the resourceref/scheme.Profile format (prn://{authority}/{app}/{org}/{resourceType}/{id}[@{version|alias}] for tenant-scoped resources, prn://{authority}/{resourceType}/{path...} for ecosystem artifacts) — not a bare id or ad hoc URL. Fields holding PRNs are named with a Prn suffix (workflowPrn, notebookPrn). Production references to executable resources SHOULD pin a version or alias (e.g. @prod).",
+      "rationale": "PRNs make cross-product references resolvable, authorizable (they map to SystemForge resource types), and version-safe via the crossforge registry — bare IDs are ambiguous the moment two products both have a 'run 123'. Fields that don't need a PlexusOne-owned scheme should still be typed resourceref.ResourceRef (any URI, per the owner-canonical-passthrough rule) rather than a bare string.",
+      "examples": {
+        "good": [
+          "\"workflowPrn\": \"prn://plexusone/actionforge/org_1/workflow/nightly-etl@prod\"",
+          "\"notebookPrn\": \"prn://plexusone/dashforge/org_1/notebook/churn-model@14\""
+        ],
+        "bad": [
+          "\"workflowId\": \"123\" (cross-product bare id)",
+          "\"notebook\": \"https://dash.example.com/notebooks/123\""
+        ]
+      },
+      "judge": {
+        "prompt": "Check that schema fields referencing resources in other PlexusOne products use prn:// URI values and Prn-suffixed field names rather than bare ids or ad hoc URLs.",
+        "passCriteria": [
+          "Cross-product references use prn:// format",
+          "PRN fields use the Prn name suffix"
+        ],
+        "failCriteria": [
+          "Bare foreign ids for cross-product references",
+          "Ad hoc URLs used as identifiers"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "resourceref (github.com/plexusone/resourceref) and crossforge interop design"
+        }
+      ]
+    },
+    {
+      "id": "PX-014",
+      "title": "Stream with SSE for server push; WebSocket only for bidirectional sessions",
+      "category": "streaming",
+      "severity": "warn",
+      "description": "Server-push streaming (run status, log tails, progress events) SHOULD use Server-Sent Events (text/event-stream). WebSocket is reserved for genuinely bidirectional sessions (e.g. notebook kernel channels). Streamed events use the shared envelope with camelCase fields and carry the subject's PRN. Long-polling MUST NOT be introduced.",
+      "rationale": "SSE works through proxies and browsers with no client library, matches the ActionForge logstream precedent, and one event envelope keeps run-watching identical across Forges.",
+      "examples": {
+        "good": [
+          "GET /api/v1/runs/{id}/events (text/event-stream)",
+          "WebSocket for kernel stdin/stdout sessions"
+        ],
+        "bad": [
+          "WebSocket for one-way log tailing",
+          "Client polling every 500ms as the documented pattern"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "ActionForge logstream/live SSE precedent"
+        }
+      ]
+    },
+    {
+      "id": "PX-015",
+      "title": "Additive-only changes within a version; detect breaking changes in CI",
+      "category": "versioning",
+      "severity": "error",
+      "description": "Within /api/v1, changes MUST be additive: new endpoints, new optional fields, new enum values only where documented as open. Removing/renaming fields, tightening types, or changing semantics requires /api/v2. CI MUST run api-style diff (breaking-change detection) against the previous released spec. Deprecations use the Deprecation and Sunset headers plus deprecated: true in the spec.",
+      "rationale": "Forge APIs are the suite's public contract (and eventually the cloud service's front door); additive evolution is what lets crossforge callers, SDKs, and agent tools pin a version and trust it.",
+      "examples": {
+        "good": [
+          "Adding optional field labels to Notebook schema in v1",
+          "api-style diff old.yaml new.yaml in the CI workflow"
+        ],
+        "bad": [
+          "Renaming createdAt to created in v1",
+          "Making an optional request field required without a version bump"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "default compatibility/deprecation categories, crossforge design"
+        }
+      ]
+    },
+    {
+      "id": "PX-016",
+      "title": "Scope tenancy from the authenticated principal, not the URL",
+      "category": "security",
+      "severity": "warn",
+      "description": "Organization/tenant context SHOULD derive from the authenticated SystemForge principal (membership + org), not from client-supplied URL segments or headers. Cross-org access is only expressible via PRNs (which embed the org) and must pass authorization for both principal and target org.",
+      "rationale": "Deriving tenancy from the session/token prevents confused-deputy bugs and matches the SystemForge Organization + RLS model; PRNs make deliberate cross-org references explicit and auditable.",
+      "examples": {
+        "good": [
+          "GET /api/v1/notebooks (org from session)",
+          "Explicit cross-org read via prn://plexusone/dashforge/org_other/notebook/nb_1"
+        ],
+        "bad": [
+          "GET /api/v1/orgs/{orgId}/notebooks trusting orgId from the path without principal check",
+          "X-Org-ID header as the tenancy source"
+        ]
+      },
+      "enforcement": {
+        "type": "none"
+      },
+      "references": [
+        {
+          "title": "SystemForge Organization/RLS model"
+        }
+      ]
+    },
+    {
+      "id": "PX-017",
+      "title": "Use verbResource operationIds and document every operation",
+      "category": "documentation",
+      "severity": "error",
+      "description": "Every operation MUST have an operationId in verbResource camelCase form (listNotebooks, createNotebookRun, getWorkflow), a one-line summary, and a description. Every schema in components/schemas MUST have a description.",
+      "rationale": "operationIds become SDK method names and agent tool names via the omniskill OpenAPI loader — sloppy operationIds become sloppy tools. Summaries/descriptions are the tool docs agents read.",
+      "examples": {
+        "good": [
+          "listNotebooks",
+          "createNotebookRun",
+          "getWorkflowRun"
+        ],
+        "bad": [
+          "notebook_list",
+          "NotebooksGET",
+          "doRun"
+        ]
+      },
+      "enforcement": {
+        "type": "spectral",
+        "function": "pattern",
+        "given": {
+          "paths": [
+            "$.paths[*][*].operationId"
+          ]
+        },
+        "options": {
+          "match": "^[a-z]+[A-Z][a-zA-Z0-9]*$"
+        }
+      },
+      "references": [
+        {
+          "title": "default PO-040/PO-028, agent-consumable principle"
+        }
+      ]
+    }
+  ],
+  "conformanceLevels": {
+    "minimum": {
+      "description": "Minimum viable Forge API — parseable, authenticated, versioned",
+      "requiredRules": [
+        "PX-001",
+        "PX-002",
+        "PX-003",
+        "PX-010"
+      ],
+      "maxErrors": 0,
+      "maxWarnings": -1
+    },
+    "standard": {
+      "description": "Production-ready Forge API — suite-consistent resources, errors, runs, and scopes",
+      "requiredRules": [
+        "PX-001",
+        "PX-002",
+        "PX-003",
+        "PX-004",
+        "PX-005",
+        "PX-007",
+        "PX-009",
+        "PX-010",
+        "PX-011",
+        "PX-012",
+        "PX-015",
+        "PX-017"
+      ],
+      "maxErrors": 0,
+      "maxWarnings": 5
+    },
+    "exemplary": {
+      "description": "Best-in-class Forge API — full interop, streaming, and tenancy conformance",
+      "requiredRules": [
+        "PX-001",
+        "PX-002",
+        "PX-003",
+        "PX-004",
+        "PX-005",
+        "PX-006",
+        "PX-007",
+        "PX-008",
+        "PX-009",
+        "PX-010",
+        "PX-011",
+        "PX-012",
+        "PX-013",
+        "PX-014",
+        "PX-015",
+        "PX-016",
+        "PX-017"
+      ],
+      "maxErrors": 0,
+      "maxWarnings": 0
+    }
+  }
+}
