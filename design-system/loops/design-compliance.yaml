@@ -1,0 +1,80 @@
+# PlexusOne Design Compliance Loop
+# Extends the generic design-fix loop with PlexusOne-specific configuration
+
+name: plexusone-design-compliance
+type: VEAL
+extends: design-system-spec/design-fix
+description: |
+  Design system compliance validation and fix loop for PlexusOne.
+  Extends the generic DSS loop with PlexusOne-specific context.
+
+# Use PlexusOne-specific agents (which extend the generic agents)
+validator: design-reviewer
+actor: code-fixer
+
+# PlexusOne configuration
+config:
+  design_system: design-system.json
+  context: llm-context.md
+  css_prefix: "--plexus"
+
+max_attempts: 3
+escalation: human
+
+success_criteria: |
+  All PlexusOne design system requirements met:
+  - All colors use --plexus-* CSS variables
+  - Spacing uses --plexus-space-* scale
+  - Typography uses --plexus-font-* tokens
+  - Dark-first principle followed
+  - Brand gradient used appropriately
+  - Accessibility requirements met (WCAG AA)
+
+# PlexusOne-specific checks (in addition to generic DSS checks)
+additional_checks:
+  - id: plexus-prefix
+    description: Verify CSS variables use --plexus prefix
+    type: pattern
+    patterns:
+      - "var\\(--(?!plexus)[a-z]"
+    files: "**/*.{css,tsx,jsx}"
+    severity: medium
+    suggestion: Use var(--plexus-*) tokens
+
+  - id: dark-first
+    description: Verify dark-first implementation
+    type: llm-as-judge
+    rubric: |
+      PlexusOne is dark-first. Check:
+      - Default background is dark (#0a0e1a) or navy (#0f172a)
+      - No light-mode-only implementations without dark mode
+      - Text colors assume dark background
+    severity: high
+
+  - id: brand-gradient
+    description: Check brand gradient usage
+    type: llm-as-judge
+    rubric: |
+      The cyan → purple → pink gradient is for:
+      - Hero sections
+      - Primary CTAs
+      - Brand emphasis
+
+      Flag if:
+      - Gradient on minor/secondary elements
+      - More than 2 gradient elements per page
+      - Gradient colors in wrong order
+    severity: medium
+
+# PlexusOne file patterns
+file_patterns:
+  - "src/**/*.{css,scss,tsx,jsx}"
+  - "components/**/*.{css,tsx,jsx}"
+  - "apps/web/**/*.{css,tsx,jsx}"
+  - "packages/**/*.{css,tsx,jsx}"
+  - "docs/stylesheets/**/*.css"
+
+# Context files
+context:
+  - design-system.json
+  - llm-context.md

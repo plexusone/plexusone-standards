@@ -13,7 +13,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/plexusone/plexusone-design-system.git"
+    "url": "git+https://github.com/plexusone/plexusone-standards.git",
+    "directory": "design-system"
   },
   "keywords": ["design-system", "design-tokens", "plexusone"],
   "author": "PlexusOne",

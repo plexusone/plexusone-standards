@@ -1,0 +1,153 @@
+{
+  "$schema": "https://plexusone.dev/structured-evaluation/v1/rubric.schema.json",
+  "type": "rubric",
+  "id": "plexusone-website-compliance-2026-07-08",
+  "target": "plexusone.github.io",
+  "timestamp": "2026-07-08T10:30:00Z",
+  "judge": {
+    "model": "claude-opus-4-5",
+    "provider": "anthropic",
+    "promptId": "design-compliance",
+    "promptVersion": "1.0"
+  },
+  "categories": [
+    {
+      "category": "color_tokens",
+      "score": "partial",
+      "reasoning": "Brand colors (cyan, purple, pink) use proper tokens. Neutral text colors use Tailwind defaults instead of design system tokens."
+    },
+    {
+      "category": "spacing_scale",
+      "score": "pass",
+      "reasoning": "Spacing uses Tailwind utility classes which align with design system scale"
+    },
+    {
+      "category": "typography",
+      "score": "pass",
+      "reasoning": "Font family defined correctly via CSS custom property --font-sans"
+    },
+    {
+      "category": "semantic_colors",
+      "score": "pass",
+      "reasoning": "Brand colors used semantically: cyan for primary/links, purple for accents/focus, pink for tertiary highlights"
+    },
+    {
+      "category": "component_patterns",
+      "score": "pass",
+      "reasoning": "Components follow consistent patterns with proper color variants"
+    },
+    {
+      "category": "accessibility",
+      "score": "pass",
+      "reasoning": "Focus rings, prefers-reduced-motion, aria-labels, and keyboard navigation properly implemented"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "medium",
+      "category": "color_tokens",
+      "title": "Hardcoded body text color",
+      "location": "apps/web/src/index.css:36",
+      "details": "Body color uses hardcoded `#f1f5f9` instead of design token",
+      "recommendation": "Replace `color: #f1f5f9` with `color: var(--color-plexus-text)` or define `--color-plexus-text: #f1f5f9` and reference it"
+    },
+    {
+      "severity": "medium",
+      "category": "color_tokens",
+      "title": "Tailwind gray classes instead of design tokens",
+      "location": "apps/web/src/components/Hero.tsx:25,29",
+      "details": "Uses `text-gray-300` and `text-gray-400` instead of design system text tokens",
+      "recommendation": "Define Tailwind classes for design system text colors: `text-plexus-text` (#f1f5f9) and `text-plexus-text-muted` (#94a3b8)"
+    },
+    {
+      "severity": "medium",
+      "category": "color_tokens",
+      "title": "Tailwind gray classes in Footer",
+      "location": "apps/web/src/components/Footer.tsx:22,31,34",
+      "details": "Uses `text-gray-400`, `text-gray-500`, `text-gray-600` instead of design system tokens",
+      "recommendation": "Use `text-plexus-text-muted` for secondary text"
+    },
+    {
+      "severity": "medium",
+      "category": "color_tokens",
+      "title": "Tailwind gray classes in BlogPage",
+      "location": "apps/web/src/pages/BlogPage.tsx:36,102,105",
+      "details": "Multiple instances of `text-gray-400` and `text-gray-500`",
+      "recommendation": "Use `text-plexus-text-muted` for secondary text throughout"
+    },
+    {
+      "severity": "low",
+      "category": "color_tokens",
+      "title": "Missing text color tokens in Tailwind theme",
+      "location": "apps/web/src/index.css:4-26",
+      "details": "Tailwind @theme block defines brand colors but not text/text-muted tokens",
+      "recommendation": "Add `--color-plexus-text: #f1f5f9` and `--color-plexus-text-muted: #94a3b8` to the @theme block"
+    },
+    {
+      "severity": "info",
+      "category": "semantic_colors",
+      "title": "Excellent gradient usage",
+      "location": "apps/web/src/index.css:42-47",
+      "details": "Gradient text utility correctly uses brand colors in proper order: cyan → purple → pink",
+      "recommendation": null
+    },
+    {
+      "severity": "info",
+      "category": "accessibility",
+      "title": "Focus ring implementation",
+      "location": "apps/web/src/index.css:79-81",
+      "details": "Proper focus-visible ring using design system purple with correct offset for dark background",
+      "recommendation": null
+    },
+    {
+      "severity": "info",
+      "category": "accessibility",
+      "title": "Reduced motion support",
+      "location": "apps/web/src/index.css:101-118",
+      "details": "Comprehensive prefers-reduced-motion media query implementation",
+      "recommendation": null
+    }
+  ],
+  "decision": {
+    "passed": true,
+    "reasoning": "4 medium severity findings (non-blocking). Website demonstrates good design system compliance for brand colors, but inconsistently uses Tailwind default gray classes instead of design system text tokens. This is a pattern issue that should be addressed for full consistency."
+  },
+  "summary": {
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 4,
+      "low": 1,
+      "info": 3
+    },
+    "categories": {
+      "pass": 4,
+      "partial": 1,
+      "fail": 0
+    },
+    "compliance": "85%"
+  },
+  "recommendations": {
+    "immediate": [
+      "Add text color tokens to Tailwind @theme block: --color-plexus-text and --color-plexus-text-muted"
+    ],
+    "short_term": [
+      "Search and replace `text-gray-300`, `text-gray-400` with `text-plexus-text-muted`",
+      "Search and replace `text-gray-500`, `text-gray-600` with `text-plexus-text-muted` or create additional token"
+    ],
+    "long_term": [
+      "Consider adding a lint rule to flag Tailwind gray classes in favor of design system tokens",
+      "Document the full color mapping in design-system.json including neutral text colors"
+    ]
+  },
+  "files_analyzed": [
+    "apps/web/src/index.css",
+    "apps/web/src/components/Hero.tsx",
+    "apps/web/src/components/ProductCard.tsx",
+    "apps/web/src/components/Footer.tsx",
+    "apps/web/src/pages/BlogPage.tsx",
+    "apps/web/public/css/plexusone-mkdocs.css"
+  ],
+  "command": "dss lint --target plexusone.github.io --spec plexusone-design-system/design-system.json --json",
+  "notes": "The PlexusOne website shows mature design system adoption. Brand colors (cyan, purple, pink) are consistently tokenized. The main gap is neutral text colors which use Tailwind defaults. MkDocs CSS shows complete token compliance. Accessibility implementation is exemplary."
+}

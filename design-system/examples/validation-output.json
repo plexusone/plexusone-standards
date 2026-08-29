@@ -1,0 +1,163 @@
+{
+  "$schema": "https://plexusone.dev/structured-evaluation/v1/rubric.schema.json",
+  "type": "rubric",
+  "id": "design-compliance-2026-07-08",
+  "target": "examples/violations.tsx",
+  "timestamp": "2026-07-08T06:30:00Z",
+  "judge": {
+    "model": "claude-3-5-haiku",
+    "provider": "anthropic",
+    "promptId": "design-compliance",
+    "promptVersion": "1.0"
+  },
+  "categories": [
+    {
+      "category": "color_tokens",
+      "score": "fail",
+      "reasoning": "9 hardcoded hex colors found that should use design tokens"
+    },
+    {
+      "category": "spacing_scale",
+      "score": "partial",
+      "reasoning": "5 hardcoded pixel values, 2 not in spacing scale"
+    },
+    {
+      "category": "typography",
+      "score": "partial",
+      "reasoning": "Font family hardcoded instead of using token"
+    },
+    {
+      "category": "semantic_colors",
+      "score": "fail",
+      "reasoning": "Cyan used for large background area (anti-pattern)"
+    },
+    {
+      "category": "component_variants",
+      "score": "fail",
+      "reasoning": "Multiple primary buttons in same view"
+    },
+    {
+      "category": "accessibility",
+      "score": "partial",
+      "reasoning": "Missing focus and hover states on interactive elements"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "high",
+      "category": "color_tokens",
+      "title": "Hardcoded background color",
+      "location": "examples/violations.tsx:9",
+      "details": "Found `#0a0e1a`, should use design token",
+      "recommendation": "Replace with `var(--plexus-dark)`"
+    },
+    {
+      "severity": "high",
+      "category": "color_tokens",
+      "title": "Hardcoded text color",
+      "location": "examples/violations.tsx:13",
+      "details": "Found `#f1f5f9`, should use design token",
+      "recommendation": "Replace with `var(--plexus-text)`"
+    },
+    {
+      "severity": "high",
+      "category": "color_tokens",
+      "title": "Hardcoded card background",
+      "location": "examples/violations.tsx:18",
+      "details": "Found `#0f172a`, should use design token",
+      "recommendation": "Replace with `var(--plexus-navy)`"
+    },
+    {
+      "severity": "high",
+      "category": "color_tokens",
+      "title": "Hardcoded primary color",
+      "location": "examples/violations.tsx:23",
+      "details": "Found `#06b6d4`, should use design token",
+      "recommendation": "Replace with `var(--plexus-cyan)`"
+    },
+    {
+      "severity": "high",
+      "category": "color_tokens",
+      "title": "Hardcoded muted text color",
+      "location": "examples/violations.tsx:26",
+      "details": "Found `#94a3b8`, should use design token",
+      "recommendation": "Replace with `var(--plexus-text-muted)`"
+    },
+    {
+      "severity": "high",
+      "category": "color_tokens",
+      "title": "Hardcoded button colors",
+      "location": "examples/violations.tsx:34,43",
+      "details": "Found `#06b6d4` in button styles",
+      "recommendation": "Replace with `var(--plexus-cyan)`"
+    },
+    {
+      "severity": "high",
+      "category": "component_variants",
+      "title": "Multiple primary buttons",
+      "location": "examples/violations.tsx:32-51",
+      "details": "Both 'Save Changes' and 'Cancel' buttons use primary (cyan) styling",
+      "recommendation": "Change 'Cancel' button to secondary variant using `var(--plexus-slate)` background"
+    },
+    {
+      "severity": "high",
+      "category": "semantic_colors",
+      "title": "Primary color as large background",
+      "location": "examples/violations.tsx:70-82",
+      "details": "HeroSection uses cyan (#06b6d4) as section background. Cyan is a primary accent and should not be used for large background areas.",
+      "recommendation": "Use `var(--plexus-dark)` or `var(--plexus-navy)` for background. Apply cyan as gradient accent if needed."
+    },
+    {
+      "severity": "medium",
+      "category": "accessibility",
+      "title": "Missing interactive states",
+      "location": "examples/violations.tsx:54-67",
+      "details": "NavLink component lacks hover and focus-visible states",
+      "recommendation": "Add :hover with `var(--plexus-cyan-light)` and :focus-visible with `box-shadow: 0 0 0 2px var(--plexus-purple)`"
+    },
+    {
+      "severity": "medium",
+      "category": "spacing_scale",
+      "title": "Hardcoded spacing values",
+      "location": "examples/violations.tsx:10,15,20",
+      "details": "Found 24px, 16px, 32px - should use spacing tokens",
+      "recommendation": "Replace with `var(--plexus-space-6)`, `var(--plexus-space-4)`, `var(--plexus-space-8)`"
+    },
+    {
+      "severity": "medium",
+      "category": "spacing_scale",
+      "title": "Non-scale spacing values",
+      "location": "examples/violations.tsx:87-88",
+      "details": "Found 18px and 22px which are not in the spacing scale",
+      "recommendation": "Use nearest scale value: 18px → `var(--plexus-space-4)` (16px), 22px → `var(--plexus-space-6)` (24px)"
+    },
+    {
+      "severity": "medium",
+      "category": "typography",
+      "title": "Hardcoded font family",
+      "location": "examples/violations.tsx:14",
+      "details": "Found `Inter, sans-serif` hardcoded",
+      "recommendation": "Replace with `var(--plexus-font-sans)`"
+    }
+  ],
+  "decision": {
+    "passed": false,
+    "reasoning": "8 high severity findings (blocking). Must fix hardcoded colors, semantic color misuse, and component variant violations before approval."
+  },
+  "summary": {
+    "counts": {
+      "critical": 0,
+      "high": 8,
+      "medium": 4,
+      "low": 0,
+      "info": 0
+    },
+    "categories": {
+      "pass": 0,
+      "partial": 3,
+      "fail": 3
+    }
+  },
+  "command": "dss lint --json examples/violations.tsx",
+  "notes": "The CompliantExample component (lines 95-110) demonstrates correct token usage and can be used as a reference for fixes."
+}
