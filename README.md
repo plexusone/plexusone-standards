@@ -19,9 +19,18 @@ for the current roadmap.
 
 ## Conventions
 
-- One root `CHANGELOG.json`/`CHANGELOG.md` for the whole repo, using
-  conventional-commit scopes per domain (`feat(design-system): ...`,
-  `feat(api): ...`) rather than a changelog per domain.
+- **One root `CHANGELOG.json`/`CHANGELOG.md`** for the whole repo (via
+  [structured-changelog](https://github.com/grokify/structured-changelog)),
+  not a changelog per domain.
+- **Scope commits by domain**: `feat(design-system): ...`,
+  `fix(api): ...`. Domain scopes match directory names one-to-one; add a
+  new scope only when a new domain directory is added. Omit the scope for
+  changes to the repo's own structure (this README, the domain index
+  table, restructuring) rather than reaching for one domain's name.
+  `schangelog parse-commits` reads the scope directly off each commit
+  when triaging changes into `CHANGELOG.json` — there's no separate
+  "scope" field in the changelog IR itself, so the commit message is the
+  only place this information has to be right.
 - Each domain directory is self-contained with its own README describing
   its structure and how to validate/consume it.
 
