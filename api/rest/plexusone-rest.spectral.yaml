@@ -1,0 +1,86 @@
+# Spectral Ruleset
+# Generated from: PlexusOne REST API Guidelines
+# Version: 1.0.0
+#
+# This file was auto-generated from an api-style-spec profile.
+# Do not edit manually - modify the source profile instead.
+
+extends:
+  - spectral:oas
+
+rules:
+
+  # PX-001: Provide OpenAPI 3.1 specification generated from Go types
+  # OpenAPI 3.1 aligns with JSON Schema draft 2020-12 and enables SDK generation,...
+  px-001:
+    description: "Provide OpenAPI 3.1 specification generated from Go types"
+    message: "Provide OpenAPI 3.1 specification generated from Go types"
+    severity: error
+    given: "$.openapi"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^3\\.1\\."
+
+  # PX-002: Use camelCase for property names
+  # camelCase matches the PlexusOne convention for API/document formats and gener...
+  px-002:
+    description: "Use camelCase for property names"
+    message: "Use camelCase for property names"
+    severity: error
+    given: "$.components.schemas[*].properties[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^[a-z$][a-zA-Z0-9]*$"
+
+  # PX-003: Use kebab-case URL paths under /api/v{N}/
+  # A uniform /api/v{N} prefix across the Forge suite makes versioning explicit a...
+  px-003:
+    description: "Use kebab-case URL paths under /api/v{N}/"
+    message: "Use kebab-case URL paths under /api/v{N}/"
+    severity: error
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^/(api/v[0-9]+/[a-z0-9\\-/{}]+|health|livez|readyz|docs.*|openapi.*|\\.well-known/.*)$"
+
+  # PX-010: Authenticate with SystemForge: Bearer tokens for APIs, BFF sessions for first-party web
+  # One identity platform across the suite: SystemForge owns authn (Fosite OAuth2...
+  px-010:
+    description: "Authenticate with SystemForge: Bearer tokens for APIs, BFF sessions for first-party web"
+    message: "Authenticate with SystemForge: Bearer tokens for APIs, BFF sessions for first-party web"
+    severity: error
+    given: "$.components.securitySchemes[*].type"
+    then:
+      function: enumeration
+      functionOptions:
+        values:
+          - "http"
+          - "oauth2"
+          - "openIdConnect"
+
+  # PX-011: Name OAuth scopes as {app}:{resource}:{verb}
+  # App-namespaced scopes map one-to-one onto SystemForge authz resource types ({...
+  px-011:
+    description: "Name OAuth scopes as {app}:{resource}:{verb}"
+    message: "Name OAuth scopes as {app}:{resource}:{verb}"
+    severity: error
+    given: "$.components.securitySchemes[*].flows[*].scopes[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-z0-9]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$"
+
+  # PX-017: Use verbResource operationIds and document every operation
+  # operationIds become SDK method names and agent tool names via the omniskill O...
+  px-017:
+    description: "Use verbResource operationIds and document every operation"
+    message: "Use verbResource operationIds and document every operation"
+    severity: error
+    given: "$.paths[*][*].operationId"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^[a-z]+[A-Z][a-zA-Z0-9]*$"

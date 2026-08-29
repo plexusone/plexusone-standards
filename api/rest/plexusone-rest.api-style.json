@@ -189,7 +189,7 @@
       "title": "Use kebab-case URL paths under /api/v{N}/",
       "category": "urls",
       "severity": "error",
-      "description": "Product API paths MUST be kebab-case and live under a versioned prefix /api/v1/ (DashForge convention). Utility endpoints (/health, /livez, /readyz, /docs, /openapi.*, /.well-known/*) are exempt from the version prefix. OpenAI-compatible surfaces (/v1/chat/completions) follow the omniagent-rest profile instead.",
+      "description": "Product API paths MUST be kebab-case and live under a versioned prefix /api/v1/ (DashForge convention). Utility endpoints (/health, /livez, /readyz, /docs, /openapi.*, /.well-known/*) are exempt from the version prefix. A genuinely OpenAI-compatible surface (/v1/chat/completions) is governed by the separate omniagent-rest profile, not by an exemption in this rule's pattern — a repo running one adds an explicit path-scoped exception rather than this rule silently accepting any bare /v{N}/... path.",
       "rationale": "A uniform /api/v{N} prefix across the Forge suite makes versioning explicit and lets the multiapp host route and gate consistently. Kebab-case avoids case-sensitivity issues and matches the org URL convention.",
       "examples": {
         "good": [
@@ -201,7 +201,8 @@
         "bad": [
           "/api/v1/styleProfiles",
           "/notebooks (unversioned product endpoint)",
-          "/api/v1/Notebook_Runs"
+          "/api/v1/Notebook_Runs",
+          "/v1/users (missing the api/ prefix)"
         ]
       },
       "enforcement": {
@@ -213,7 +214,7 @@
           ]
         },
         "options": {
-          "match": "^/(api/v[0-9]+/[a-z0-9\\-/{}]+|health|livez|readyz|docs.*|openapi.*|\\.well-known/.*|v[0-9]+/[a-z0-9\\-/{}]+)$"
+          "match": "^/(api/v[0-9]+/[a-z0-9\\-/{}]+|health|livez|readyz|docs.*|openapi.*|\\.well-known/.*)$"
         }
       },
       "references": [

@@ -1,0 +1,290 @@
+{
+  "id": "PlexusOne REST API Guidelines",
+  "name": "PlexusOne REST API Guidelines Evaluation Rubric",
+  "version": "1.0.0",
+  "description": "House REST API style guide for PlexusOne products (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook) and the crossforge interop contract. Derived from the api-style-spec default profile with PlexusOne-specific rules for PRN resource references, authorization scopes, run resources, and streaming. Self-contained rather than relying on `extends` resolution (the api-style-spec loader treats `extends` as schema-only metadata, not inherited rules) — restated rules cite their source as `default PO-xxx`.",
+  "evaluationType": "analytic",
+  "passCriteria": {
+    "minCategoriesPassing": "all_required",
+    "maxFindingsSeverity": {
+      "critical": 0,
+      "high": 0,
+      "medium": -1
+    }
+  },
+  "categories": [
+    {
+      "id": "general",
+      "name": "General Guidelines",
+      "description": "Fundamental requirements for all PlexusOne APIs",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical"
+      }
+    },
+    {
+      "id": "naming",
+      "name": "Naming Conventions",
+      "description": "Property, resource, and identifier naming",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical"
+      }
+    },
+    {
+      "id": "urls",
+      "name": "URL Design",
+      "description": "Resource-oriented URL patterns",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical",
+        "options": [
+          {
+            "value": "pass",
+            "label": "Pass",
+            "criteria": [
+              "All collection endpoints use plural nouns"
+            ]
+          },
+          {
+            "value": "partial",
+            "label": "Partial",
+            "criteria": null
+          },
+          {
+            "value": "fail",
+            "label": "Fail",
+            "criteria": [
+              "Singular nouns used for collection segments"
+            ]
+          }
+        ]
+      },
+      "evaluationPrompt": "Check whether all collection endpoints use plural nouns for resource segments."
+    },
+    {
+      "id": "http-methods",
+      "name": "HTTP Methods",
+      "description": "HTTP verb usage and semantics",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical",
+        "options": [
+          {
+            "value": "pass",
+            "label": "Pass",
+            "criteria": [
+              "GET has no side effects",
+              "Invocations are POSTs creating run resources",
+              "No verb-only path segments like /delete or /execute"
+            ]
+          },
+          {
+            "value": "partial",
+            "label": "Partial",
+            "criteria": null
+          },
+          {
+            "value": "fail",
+            "label": "Fail",
+            "criteria": [
+              "Actions expressed as verb paths",
+              "GET with side effects"
+            ]
+          }
+        ]
+      },
+      "evaluationPrompt": "Verify HTTP methods follow REST semantics and that invocation is modeled as creating a run sub-resource rather than verb paths."
+    },
+    {
+      "id": "http-status",
+      "name": "HTTP Status Codes",
+      "description": "Status code usage",
+      "weight": 1,
+      "scale": {
+        "type": "categorical"
+      }
+    },
+    {
+      "id": "request-response",
+      "name": "Request \u0026 Response",
+      "description": "JSON payload structure and conventions",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical"
+      }
+    },
+    {
+      "id": "errors",
+      "name": "Error Handling",
+      "description": "RFC 9457 error responses",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical",
+        "options": [
+          {
+            "value": "pass",
+            "label": "Pass",
+            "criteria": [
+              "Error responses use application/problem+json with type/title/status/detail"
+            ]
+          },
+          {
+            "value": "partial",
+            "label": "Partial",
+            "criteria": null
+          },
+          {
+            "value": "fail",
+            "label": "Fail",
+            "criteria": [
+              "Ad hoc error envelopes",
+              "Errors returned as plain strings"
+            ]
+          }
+        ]
+      },
+      "evaluationPrompt": "Check that 4xx/5xx responses reference an RFC 9457 Problem Details schema (application/problem+json)."
+    },
+    {
+      "id": "pagination",
+      "name": "Pagination",
+      "description": "Cursor-based pagination",
+      "weight": 1,
+      "scale": {
+        "type": "categorical",
+        "options": [
+          {
+            "value": "pass",
+            "label": "Pass",
+            "criteria": [
+              "Cursor-based pagination with items/nextCursor envelope"
+            ]
+          },
+          {
+            "value": "partial",
+            "label": "Partial",
+            "criteria": null
+          },
+          {
+            "value": "fail",
+            "label": "Fail",
+            "criteria": [
+              "Offset/page-number pagination on new endpoints",
+              "Unbounded lists"
+            ]
+          }
+        ]
+      },
+      "evaluationPrompt": "Check that list endpoints accept cursor/limit parameters and return an items array with nextCursor."
+    },
+    {
+      "id": "versioning",
+      "name": "Versioning \u0026 Compatibility",
+      "description": "API versioning, deprecation, and breaking-change policy",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical"
+      }
+    },
+    {
+      "id": "security",
+      "name": "Security \u0026 Authorization",
+      "description": "SystemForge-based authentication and scope conventions",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical"
+      }
+    },
+    {
+      "id": "interop",
+      "name": "Crossforge Interop",
+      "description": "PRN references, invocation, and run resources",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical",
+        "options": [
+          {
+            "value": "pass",
+            "label": "Pass",
+            "criteria": [
+              "Cross-product references use prn:// format",
+              "PRN fields use the Prn name suffix"
+            ]
+          },
+          {
+            "value": "partial",
+            "label": "Partial",
+            "criteria": null
+          },
+          {
+            "value": "fail",
+            "label": "Fail",
+            "criteria": [
+              "Bare foreign ids for cross-product references",
+              "Ad hoc URLs used as identifiers"
+            ]
+          }
+        ]
+      },
+      "evaluationPrompt": "Check that schema fields referencing resources in other PlexusOne products use prn:// URI values and Prn-suffixed field names rather than bare ids or ad hoc URLs."
+    },
+    {
+      "id": "streaming",
+      "name": "Streaming \u0026 Long-Running Operations",
+      "description": "SSE, WebSocket, and async run patterns",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical",
+        "options": [
+          {
+            "value": "pass",
+            "label": "Pass",
+            "criteria": [
+              "Runs are resources with GET polling",
+              "202 Accepted on run creation",
+              "Normalized status enum"
+            ]
+          },
+          {
+            "value": "partial",
+            "label": "Partial",
+            "criteria": null
+          },
+          {
+            "value": "fail",
+            "label": "Fail",
+            "criteria": [
+              "Blocking endpoints for long work",
+              "Custom status vocabularies"
+            ]
+          }
+        ]
+      },
+      "evaluationPrompt": "Check that long-running operations are exposed as run sub-resources returning 202 with id/prn/status, and that status enums use PENDING/RUNNING/SUCCEEDED/FAILED/CANCELLED/TIMED_OUT."
+    },
+    {
+      "id": "documentation",
+      "name": "Documentation",
+      "description": "OpenAPI specification requirements",
+      "weight": 1,
+      "required": true,
+      "scale": {
+        "type": "categorical"
+      }
+    }
+  ],
+  "metadata": {
+    "author": "PlexusOne"
+  }
+}

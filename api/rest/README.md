@@ -13,14 +13,29 @@ versioning.
 
 ```
 api/rest/
-└── plexusone-rest.api-style.json   Single source of truth — 17 PX-* rules,
-                                     3 conformance levels (minimum/standard/exemplary)
+├── plexusone-rest.api-style.json   Single source of truth — 17 PX-* rules,
+│                                    3 conformance levels (minimum/standard/exemplary)
+├── plexusone-rest.spectral.yaml    Generated — deterministic Spectral ruleset
+├── plexusone-rest.rubric.json      Generated — LLM evaluation rubric
+└── plexusone-rest.guide.md         Generated — human-readable Markdown guide
 ```
 
-Generated artifacts (Spectral ruleset, LLM evaluation rubric, human-readable
-Markdown guide) are produced from this file via `api-style generate`
-rather than hand-maintained — see
-[`RMI-PLEXUSONESTANDARDS-004`](../../docs/specs/initiatives/INIT-PLEXUSONESTANDARDS-001/ROADMAP.md).
+The three generated files are build artifacts, never hand-edited — after
+changing `plexusone-rest.api-style.json`, regenerate them:
+
+```bash
+api-style generate spectral -f plexusone-rest.api-style.json -o plexusone-rest.spectral.yaml
+api-style generate rubric   -f plexusone-rest.api-style.json -o plexusone-rest.rubric.json
+api-style generate guide    -f plexusone-rest.api-style.json -o plexusone-rest.guide.md
+```
+
+Both the schema-validity of the source profile and the spectral ruleset's
+actual behavior are proven, not assumed: `ajv` validates the profile
+against api-style-spec's own JSON Schema (`schemakit lint` alone only
+checks property casing, not structural conformance — insufficient on its
+own), and linting an api-style-spec exemplar against this profile
+confirms PX-003 genuinely catches an unversioned `/v1/...` path rather
+than passing everything through.
 
 ## Using this profile
 
