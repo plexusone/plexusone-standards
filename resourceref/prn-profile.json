@@ -1,0 +1,60 @@
+{
+  "scheme": "prn",
+  "uriSubset": {
+    "allowQuery": false,
+    "allowFragment": false,
+    "allowUserinfo": false,
+    "allowPort": false,
+    "segmentPattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+  },
+  "authorities": [
+    {
+      "name": "plexusone",
+      "description": "PlexusOne, Inc. — the Forge product suite (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook), the interop contract (crossforge), and the omni* engines."
+    },
+    {
+      "name": "productbuildershq",
+      "description": "ProductBuildersHQ — initiative/roadmap tracking artifacts (visionstudio: initiatives, phases, RMIs) referenced from outside their own tracker."
+    },
+    {
+      "name": "grokify",
+      "description": "grokify — shared foundation libraries and platform modules not owned by a single Forge product (e.g. systemforge prior to its move into plexusone, mogo, other grokify-namespaced modules)."
+    }
+  ],
+  "shapes": [
+    {
+      "name": "tenant-scoped",
+      "segments": [
+        {"role": "app"},
+        {"role": "org"},
+        {"role": "resourceType"},
+        {"role": "id"}
+      ]
+    },
+    {
+      "name": "ecosystem-artifact",
+      "segments": [
+        {"role": "resourceType"},
+        {"role": "id", "rest": true}
+      ]
+    }
+  ],
+  "resourceTypes": [
+    {
+      "authority": "plexusone",
+      "app": "dashforge",
+      "types": ["notebook", "notebook-run", "dashboard", "question", "data-app"]
+    },
+    {
+      "authority": "plexusone",
+      "app": "actionforge",
+      "types": ["workflow", "workflow-run", "artifact"]
+    }
+  ],
+  "version": {
+    "separator": "@",
+    "required": false,
+    "versionPattern": "^[0-9]+$",
+    "aliasPattern": "^[a-z][a-z0-9-]*$"
+  }
+}

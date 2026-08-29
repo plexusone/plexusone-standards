@@ -11,9 +11,10 @@ repo is where PlexusOne's own configuration of each one lives.
 |--------|--------------|--------|
 | [`design-system/`](design-system/) | [design-system-spec](https://github.com/plexusone/design-system-spec) | Active — design tokens for marketing site, web apps, presentations, doc sites |
 | [`api/rest/`](api/rest/) | [api-style-spec](https://github.com/plexusone/api-style-spec) | Active — the `plexusone-rest` REST API style profile |
+| [`resourceref/`](resourceref/) | [resourceref](https://github.com/plexusone/resourceref) | Active — the `prn` scheme instance (authorities, shapes, resource types) |
 
-Future domains (module/product naming conventions, PRN scheme
-cross-references) land here as they're specced; see
+Future domains (module/product naming conventions) land here as they're
+specced; see
 [`docs/specs/initiatives/INIT-PLEXUSONESTANDARDS-001`](docs/specs/initiatives/INIT-PLEXUSONESTANDARDS-001)
 for the current roadmap.
 
