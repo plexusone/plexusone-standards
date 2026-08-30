@@ -7,6 +7,29 @@
   "maintainers": ["johnwang"],
   "releases": [
     {
+      "version": "v0.2.0",
+      "date": "2026-08-29",
+      "commit": "d38057e",
+      "highlights": [
+        { "description": "Restructured into a multi-domain standards repo (design-system, api/rest, resourceref, naming) and added the plexusone-rest REST API style profile and the prn resource-reference scheme instance" }
+      ],
+      "added": [
+        { "description": "api/rest/plexusone-rest.api-style.json: 17-rule REST API style profile covering naming, errors, pagination, SystemForge auth/scopes, PRN references, run resources, streaming, and versioning, with 3 conformance levels", "commit": "e2e138c" },
+        { "description": "Generated api/rest/plexusone-rest.{spectral.yaml,rubric.json,guide.md} artifacts from the API style profile", "commit": "5948afe" },
+        { "description": "resourceref/prn-profile.json: the real prn resource-reference scheme instance (authorities, tenant-scoped and ecosystem-artifact shapes, resourceType registries for dashforge and actionforge, version/alias grammar), validated by a Go test module against resourceref's scheme engine", "commit": "09823a5" },
+        { "description": "naming/README.md: module and product naming-conventions standard (omni*, *forge, *-core, plain functional names) with PRN/scope grammar cross-references", "commit": "d38057e" }
+      ],
+      "changed": [
+        { "description": "Restructured repo into domain directories: design-system.json, package.json, agents/, examples/, loops/, and llm-context.md moved into design-system/; root README became a cross-domain index", "commit": "0b4f833" }
+      ],
+      "fixed": [
+        { "description": "api/rest PX-003 URL-pattern rule: removed an overly permissive bare /v{N}/... alternative that silently accepted any unversioned path, caught by linting an api-style-spec exemplar before and after the fix", "commit": "5948afe" }
+      ],
+      "internal": [
+        { "description": "Updated CHANGELOG.json/CHANGELOG.md self-references from plexusone-design-system to plexusone-standards; documented the per-domain commit-scope convention", "commit": "1b7bce1" }
+      ]
+    },
+    {
       "version": "v0.1.0",
       "date": "2026-05-31",
       "commit": "0c234f2",
