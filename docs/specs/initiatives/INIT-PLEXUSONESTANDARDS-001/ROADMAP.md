@@ -52,3 +52,10 @@ levels minimum/standard/exemplary.
   - Depends on: `RMI-PLEXUSONESTANDARDS-004`
 - [ ] `RMI-AGENTFORGE-003` agentforge: .api-style.yaml + CI lint for the BFF API surface (OpenAI-compatible endpoints continue under the omniagent-rest profile)
   - Depends on: `RMI-PLEXUSONESTANDARDS-004`
+
+## Phase 4 — One Guide for Every Product
+
+**Theme:** plexusone-rest covers every product built on SystemForge, including APIs published to customers
+
+- [ ] `RMI-PLEXUSONESTANDARDS-007` plexusone-rest v1.1.0: the `/api/{api}/v{N}/` path form beside the `/api/v{N}/` default, camelCase path parameters, organization selectors in paths authorized against the principal, slugs as alternate keys, and new rules for operation audiences, preconditions, dry runs, content-addressed uploads and unauthenticated endpoints
+  - Depends on: `RMI-PLEXUSONESTANDARDS-004`

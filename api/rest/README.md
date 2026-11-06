@@ -3,17 +3,18 @@
 PlexusOne's REST API style guide — a
 [api-style-spec](https://github.com/plexusone/api-style-spec) profile
 instance defining how Forge product APIs (DashForge, ActionForge,
-AgentForge, SystemForge, OmniNotebook) and the
-[crossforge](https://github.com/plexusone/crossforge) interop contract
-present themselves over HTTP: naming, errors, pagination, authorization
-scopes, PRN cross-product references, run resources, streaming, and
-versioning.
+AgentForge, SystemForge, OmniNotebook), the
+[crossforge](https://github.com/plexusone/crossforge) interop contract,
+and other products built on SystemForge present themselves
+over HTTP: naming, errors, pagination, authorization scopes, PRN
+cross-product references, run resources, streaming, versioning, API
+audiences, and safe bulk uploads.
 
 ## Structure
 
 ```
 api/rest/
-├── plexusone-rest.api-style.json   Single source of truth — 17 PX-* rules,
+├── plexusone-rest.api-style.json   Single source of truth — 22 PX-* rules,
 │                                    3 conformance levels (minimum/standard/exemplary)
 ├── plexusone-rest.spectral.yaml    Generated — deterministic Spectral ruleset
 ├── plexusone-rest.rubric.json      Generated — LLM evaluation rubric
@@ -51,6 +52,30 @@ Or via `.api-style.yaml` in the consuming repo:
 ```yaml
 profile: ../plexusone-standards/api/rest/plexusone-rest.api-style.json
 level: standard
+```
+
+## Versioned paths
+
+Product APIs live under `/api/v{N}/` (PX-003). A host that serves several
+independently versioned APIs may instead use `/api/{api}/v{N}/`, where
+`{api}` names a product capability such as `billing`; a host uses one form,
+never both. Start with `/api/v{N}/`.
+
+## Audiences
+
+Every operation declares `x-audience: public | first-party | internal`
+(PX-018). Public operations are what customers and third parties use, and
+they are held to the full conformance level. A repo migrating to this guide
+records path-scoped exceptions in its `.api-style.yaml` for first-party and
+internal operations, never for public ones:
+
+```yaml
+profile: ../plexusone-standards/api/rest/plexusone-rest.api-style.json
+level: standard
+exceptions:
+  - rule: PX-002
+    paths: ["/api/v1/admin/**"]
+    reason: "First-party admin API; moves to camelCase with the web app"
 ```
 
 ## Design basis
