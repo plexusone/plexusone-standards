@@ -1,6 +1,6 @@
 # Spectral Ruleset
 # Generated from: PlexusOne REST API Guidelines
-# Version: 1.0.0
+# Version: 1.1.0
 #
 # This file was auto-generated from an api-style-spec profile.
 # Do not edit manually - modify the source profile instead.
@@ -34,17 +34,17 @@ rules:
       functionOptions:
         match: "^[a-z$][a-zA-Z0-9]*$"
 
-  # PX-003: Use kebab-case URL paths under /api/v{N}/
-  # A uniform /api/v{N} prefix across the Forge suite makes versioning explicit a...
+  # PX-003: Use kebab-case URL paths under a versioned /api prefix
+  # A versioned /api prefix makes the contract explicit and lets hosts and gatewa...
   px-003:
-    description: "Use kebab-case URL paths under /api/v{N}/"
-    message: "Use kebab-case URL paths under /api/v{N}/"
+    description: "Use kebab-case URL paths under a versioned /api prefix"
+    message: "Use kebab-case URL paths under a versioned /api prefix"
     severity: error
     given: "$.paths[*]~"
     then:
       function: pattern
       functionOptions:
-        match: "^/(api/v[0-9]+/[a-z0-9\\-/{}]+|health|livez|readyz|docs.*|openapi.*|\\.well-known/.*)$"
+        match: "^/(api/([a-z][a-z0-9-]*/)?v[0-9]+(/([a-z0-9-]+|\\{[a-z][a-zA-Z0-9]*\\}))+|health|livez|readyz|docs.*|openapi.*|\\.well-known/.*)$"
 
   # PX-010: Authenticate with SystemForge: Bearer tokens for APIs, BFF sessions for first-party web
   # One identity platform across the suite: SystemForge owns authn (Fosite OAuth2...

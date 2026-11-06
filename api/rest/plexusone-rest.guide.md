@@ -5,7 +5,7 @@ House REST API style guide for PlexusOne products (DashForge, ActionForge, Agent
 ## Metadata
 
 - **Author:** PlexusOne
-- **Last Updated:** 2026-08-27
+- **Last Updated:** 2026-11-06
 - **License:** MIT
 
 ## Table of Contents
@@ -121,13 +121,13 @@ Bad:
 
 Resource-oriented URL patterns
 
-### PX-003: Use kebab-case URL paths under /api/v{N}/
+### PX-003: Use kebab-case URL paths under a versioned /api prefix
 
 **Severity:** error
 
-Product API paths MUST be kebab-case and live under a versioned prefix /api/v1/ (DashForge convention). Utility endpoints (/health, /livez, /readyz, /docs, /openapi.*, /.well-known/*) are exempt from the version prefix. A genuinely OpenAI-compatible surface (/v1/chat/completions) is governed by the separate omniagent-rest profile, not by an exemption in this rule's pattern — a repo running one adds an explicit path-scoped exception rather than this rule silently accepting any bare /v{N}/... path.
+Product API paths MUST be kebab-case and carry a major version. Two forms are allowed: /api/v{N}/{resources}, the default, where one host serves one API; and /api/{api}/v{N}/{resources}, where one host serves several independently versioned APIs. {api} is a stable kebab-case name for a product capability (billing, identity), never a team or service name, and each one is listed in the consuming repo's API style configuration. A host uses one form, never both. Path parameters are camelCase in braces ({orgSlug}). Utility endpoints (/health, /livez, /readyz, /docs, /openapi.*, /.well-known/*) are exempt from the version prefix. A genuinely OpenAI-compatible surface (/v1/chat/completions) is governed by the separate omniagent-rest profile, not by an exemption in this rule's pattern — a repo running one adds an explicit path-scoped exception rather than this rule silently accepting any bare /v{N}/... path.
 
-**Rationale:** A uniform /api/v{N} prefix across the Forge suite makes versioning explicit and lets the multiapp host route and gate consistently. Kebab-case avoids case-sensitivity issues and matches the org URL convention.
+**Rationale:** A versioned /api prefix makes the contract explicit and lets hosts and gateways route and gate consistently. The default form keeps one version per product: splitting a service into several behind a gateway routes by the first resource segment and changes no public URL. The capability form is for hosts that genuinely serve separate APIs with separate owners and release cycles; naming capabilities rather than teams keeps reorganizations out of URLs. Kebab-case avoids case-sensitivity issues and matches the org URL convention.
 
 **Examples:**
 
@@ -135,6 +135,8 @@ Good:
 
 - `/api/v1/notebooks`
 - `/api/v1/style-profiles/{id}`
+- `/api/v1/organizations/{orgSlug}/files/{sha256}`
+- `/api/billing/v1/invoices (capability form, on a host serving several APIs)`
 - `/health`
 - `/docs`
 
@@ -144,10 +146,13 @@ Bad:
 - `/notebooks (unversioned product endpoint)`
 - `/api/v1/Notebook_Runs`
 - `/v1/users (missing the api/ prefix)`
+- `/api/v1/{org_slug}/projects (snake_case path parameter)`
+- `/api/payments-team/v1/charges (a team name, not a capability)`
 
 **References:**
 
 - [default PO-003/PO-005, DashForge /api/v1 convention]()
+- [Google Cloud APIs: per-service versioned paths on shared hosts]()
 
 ---
 
@@ -246,7 +251,7 @@ JSON payload structure and conventions
 
 **Severity:** error
 
-Resource identifiers MUST be strings with a resource-type prefix (nb_, run_, wf_, agt_). Date-time values MUST be ISO 8601 in UTC (2026-08-27T14:30:00Z); dates as YYYY-MM-DD.
+Resource identifiers MUST be strings with a resource-type prefix (nb_, run_, wf_, agt_). Date-time values MUST be ISO 8601 in UTC (2026-08-27T14:30:00Z); dates as YYYY-MM-DD. A human-readable slug MAY address a resource in paths alongside its ID (/organizations/{orgSlug}) when the slug is unique within its parent and changes only through an explicit rename; responses still return the prefixed ID, and clients that store references store the ID.
 
 **Rationale:** Prefixed string IDs are self-describing in logs and PRNs, support UUID/ULID backends, and avoid integer overflow. ISO 8601 UTC is unambiguous and sortable.
 
@@ -257,6 +262,7 @@ Good:
 - `nb_01J8ZK3V9XQ4`
 - `run_abc123`
 - `2026-08-27T14:30:00Z`
+- `GET /api/v1/organizations/acme (slug in the path; the response carries id: org_01J8ZK…)`
 
 Bad:
 
@@ -416,25 +422,28 @@ Bad:
 
 ---
 
-### PX-016: Scope tenancy from the authenticated principal, not the URL
+### PX-016: Authorize tenancy against the principal; an organization in the path is only a selector
 
 **Severity:** warn
 
-Organization/tenant context SHOULD derive from the authenticated SystemForge principal (membership + org), not from client-supplied URL segments or headers. Cross-org access is only expressible via PRNs (which embed the org) and must pass authorization for both principal and target org.
+Organization/tenant context MUST be authorized against the authenticated SystemForge principal (membership + org). When a principal belongs to several organizations, the path MAY select one (/api/v1/organizations/{orgSlug}/...), and the server MUST check the principal's membership and role in that organization on every request. A credential bound to one organization (an API key or an organization-scoped token) MUST be refused for any other organization's paths, whatever its owner could reach. Where a principal has exactly one organization, derive it from the principal and leave it out of the path. Headers are never the tenancy source. Cross-org access is only expressible via PRNs (which embed the org) and must pass authorization for both principal and target org.
 
-**Rationale:** Deriving tenancy from the session/token prevents confused-deputy bugs and matches the SystemForge Organization + RLS model; PRNs make deliberate cross-org references explicit and auditable.
+**Rationale:** Authorizing against the principal prevents confused-deputy bugs and matches the SystemForge Organization + RLS model. A path selector is how people who belong to several organizations address one of them, as GitHub's /orgs/{org} does, and it keeps URLs shareable; binding keys to one organization limits what a leaked key can reach. PRNs make deliberate cross-org references explicit and auditable.
 
 **Examples:**
 
 Good:
 
-- `GET /api/v1/notebooks (org from session)`
+- `GET /api/v1/notebooks (single-org product; org from the session)`
+- `GET /api/v1/organizations/{orgSlug}/projects (membership checked for orgSlug on every request)`
+- `An API key for org acme gets 403 on /api/v1/organizations/other/...`
 - `Explicit cross-org read via prn://plexusone/dashforge/org_other/notebook/nb_1`
 
 Bad:
 
-- `GET /api/v1/orgs/{orgId}/notebooks trusting orgId from the path without principal check`
+- `GET /api/v1/orgs/{orgId}/notebooks trusting orgId from the path without a membership check`
 - `X-Org-ID header as the tenancy source`
+- `An organization-bound API key accepted on another organization's paths`
 
 **References:**
 
