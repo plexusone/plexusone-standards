@@ -84,3 +84,14 @@ rules:
       function: pattern
       functionOptions:
         match: "^[a-z]+[A-Z][a-zA-Z0-9]*$"
+
+  # PX-018: Declare each operation's audience with x-audience
+  # A product's API usually mixes a small surface customers depend on with a larg...
+  px-018:
+    description: "Declare each operation's audience with x-audience"
+    message: "Declare each operation's audience with x-audience"
+    severity: error
+    given: "$.paths[*][get,put,post,patch,delete]"
+    then:
+      field: "x-audience"
+      function: truthy

@@ -1,6 +1,6 @@
 # PlexusOne REST API Guidelines
 
-House REST API style guide for PlexusOne products (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook) and the crossforge interop contract. Derived from the api-style-spec default profile with PlexusOne-specific rules for PRN resource references, authorization scopes, run resources, and streaming. Self-contained rather than relying on `extends` resolution (the api-style-spec loader treats `extends` as schema-only metadata, not inherited rules) — restated rules cite their source as `default PO-xxx`.
+House REST API style guide for PlexusOne products (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook), the crossforge interop contract, and other products built on SystemForge. Derived from the api-style-spec default profile with PlexusOne-specific rules for PRN resource references, authorization scopes, run resources, streaming, API audiences, and safe bulk uploads. Self-contained rather than relying on `extends` resolution (the api-style-spec loader treats `extends` as schema-only metadata, not inherited rules) — restated rules cite their source as `default PO-xxx`.
 
 ## Metadata
 
@@ -276,6 +276,85 @@ Bad:
 
 ---
 
+### PX-019: Guard concurrent changes with preconditions
+
+**Severity:** error
+
+An operation that replaces or applies a whole resource, or a document many clients edit, MUST support a precondition so that an update based on a stale copy is refused rather than silently overwriting newer changes. Use ETag with If-Match (412 Precondition Failed on mismatch) for plain resources, or a revision field in the request body (baseRevision, 409 Conflict with the current revision in the problem details) for apply and sync operations whose request is a document. A client MAY deliberately overwrite with an explicit force flag. Responses return the new ETag or revision.
+
+**Rationale:** Last-write-wins loses edits whenever two people, or a person and an agent, change the same thing. A precondition turns that into a visible conflict the client can resolve, and the explicit force flag keeps overwriting a deliberate choice.
+
+**Examples:**
+
+Good:
+
+- `PUT /api/v1/notebooks/{id} with If-Match: "v7" → 412 when the notebook is now at v8`
+- `PUT .../package with baseRevision: 12 → 409 with currentRevision: 13; retried with force: true to overwrite`
+
+Bad:
+
+- `a sync endpoint that applies whatever it receives, discarding edits made since the client's last sync`
+- `returning 200 and a merged result the client never saw`
+
+**References:**
+
+- [RFC 9110 §13.1.1 If-Match; RFC 9457 problem details]()
+
+---
+
+### PX-020: Offer a dry run for bulk and apply operations
+
+**Severity:** warn
+
+An operation that changes many resources at once (apply a document, import, sync, bulk delete) SHOULD accept dryRun (a boolean in the body, or a query parameter for operations without one). A dry run performs every validation and authorization check, returns the same response shape describing what would change, and changes nothing. Removal of resources missing from the request is opt-in (prune) rather than implied.
+
+**Rationale:** Bulk changes are where mistakes are expensive. A dry run lets people and agents preview the effect with the real validation, and opt-in pruning means an incomplete upload never deletes content by omission.
+
+**Examples:**
+
+Good:
+
+- `PUT .../package with dryRun: true → the sections and lessons that would be added, updated and kept`
+- `prune: true required before sections missing from the upload are removed`
+
+Bad:
+
+- `a separate /validate endpoint whose checks drift from the real operation`
+- `an import that deletes everything not in the file`
+
+**References:**
+
+- [Kubernetes server-side dry run]()
+
+---
+
+### PX-021: Upload files by content address
+
+**Severity:** warn
+
+APIs that accept sets of files (document bundles, packages, assets) SHOULD upload each file once by its content address: PUT /api/v1/.../files/{sha256} with the raw bytes (application/octet-stream), idempotent, the server verifying the digest (400 when it does not match) and refusing bodies over a documented limit (413). The client then sends a JSON manifest naming files by digest; the response lists the digests the server does not have, the client uploads only those, and resends the manifest. Files are scoped to the organization, never shared across organizations, and readable only by principals who could read a resource that references them.
+
+**Rationale:** Content addressing makes uploads resumable and incremental: an unchanged file is never sent twice, a retried upload is harmless, and the manifest can be applied atomically once every file is present. Verifying the digest server-side keeps the address trustworthy.
+
+**Examples:**
+
+Good:
+
+- `PUT /api/v1/organizations/{orgSlug}/files/{sha256} (204 when stored or already present)`
+- `PUT .../package → 200 with missing: ["9f86d0…"] until every file is uploaded`
+
+Bad:
+
+- `one multipart request carrying a whole bundle, retried from the start on any failure`
+- `trusting the client's digest without hashing the bytes`
+- `files readable by any organization that knows the digest`
+
+**References:**
+
+- [OCI distribution spec: content-addressed blobs and manifests]()
+
+---
+
 ## Error Handling
 
 RFC 9457 error responses
@@ -451,6 +530,33 @@ Bad:
 
 ---
 
+### PX-022: Keep unauthenticated endpoints read-only and limited to what is public
+
+**Severity:** error
+
+Operations that need no credentials MUST be read-only (GET), declare security: [] explicitly, and live under a public path segment (/api/v1/public/...) so they are never confused with authenticated routes. They return only what its owner chose to publish (a public profile, a published document, a shared report), never presence or counts that reveal private resources beyond documented aggregates, and are rate limited. A resource that is not public answers 404, exactly as a resource that does not exist.
+
+**Rationale:** Public pages and verification links need data without sign-in, and that surface is the easiest to scrape and probe. Grouping it, keeping it read-only, and answering 404 for anything not public stops it from leaking which private resources exist.
+
+**Examples:**
+
+Good:
+
+- `GET /api/v1/public/orgs/{slug}/certified (only learners with public profiles; total counts documented)`
+- `GET /api/v1/public/orgs/{slug} → 404 for a private organization`
+
+Bad:
+
+- `POST /api/v1/public/... (a write without credentials)`
+- `403 for private resources, confirming that they exist`
+- `a public endpoint returning email addresses`
+
+**References:**
+
+- [OWASP API Security Top 10: API3 broken object property level authorization]()
+
+---
+
 ## Crossforge Interop
 
 PRN references, invocation, and run resources
@@ -566,6 +672,34 @@ Bad:
 **References:**
 
 - [default PO-040/PO-028, agent-consumable principle]()
+
+---
+
+### PX-018: Declare each operation's audience with x-audience
+
+**Severity:** error
+
+Every operation MUST declare its audience with the x-audience extension: public (documented for customers and third parties, covered by published SDKs and the compatibility promise of PX-015), first-party (called only by the product's own web and mobile apps), or internal (operators and service-to-service). Public operations are held to the full conformance level in every repo; a repo MAY record path-scoped exceptions for first-party and internal operations while they migrate. Moving an operation to public is a reviewed change: it must already conform.
+
+**Rationale:** A product's API usually mixes a small surface customers depend on with a larger one only its own apps call. Marking the audience in the contract lets documentation, SDK generation, agent tool loaders and lint strictness follow it, and makes promoting an operation to public a deliberate act rather than an accident of it being reachable.
+
+**Examples:**
+
+Good:
+
+- `putDocumentBundle with x-audience: public`
+- `the web app's dashboard feed with x-audience: first-party`
+- `a reindex job trigger with x-audience: internal`
+
+Bad:
+
+- `an operation with no x-audience`
+- `x-audience: external (not one of the three values)`
+- `an operation documented for customers but marked first-party`
+
+**References:**
+
+- [Zalando API guidelines: x-audience (rule 219)]()
 
 ---
 
