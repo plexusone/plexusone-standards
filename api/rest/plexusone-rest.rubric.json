@@ -1,8 +1,8 @@
 {
   "id": "PlexusOne REST API Guidelines",
   "name": "PlexusOne REST API Guidelines Evaluation Rubric",
-  "version": "1.0.0",
-  "description": "House REST API style guide for PlexusOne products (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook) and the crossforge interop contract. Derived from the api-style-spec default profile with PlexusOne-specific rules for PRN resource references, authorization scopes, run resources, and streaming. Self-contained rather than relying on `extends` resolution (the api-style-spec loader treats `extends` as schema-only metadata, not inherited rules) — restated rules cite their source as `default PO-xxx`.",
+  "version": "1.1.0",
+  "description": "House REST API style guide for PlexusOne products (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook), the crossforge interop contract, and other products built on SystemForge. Derived from the api-style-spec default profile with PlexusOne-specific rules for PRN resource references, authorization scopes, run resources, streaming, API audiences, and safe bulk uploads. Self-contained rather than relying on `extends` resolution (the api-style-spec loader treats `extends` as schema-only metadata, not inherited rules) — restated rules cite their source as `default PO-xxx`.",
   "evaluationType": "analytic",
   "passCriteria": {
     "minCategoriesPassing": "all_required",

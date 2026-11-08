@@ -1,11 +1,11 @@
 # PlexusOne REST API Guidelines
 
-House REST API style guide for PlexusOne products (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook) and the crossforge interop contract. Derived from the api-style-spec default profile with PlexusOne-specific rules for PRN resource references, authorization scopes, run resources, and streaming. Self-contained rather than relying on `extends` resolution (the api-style-spec loader treats `extends` as schema-only metadata, not inherited rules) — restated rules cite their source as `default PO-xxx`.
+House REST API style guide for PlexusOne products (DashForge, ActionForge, AgentForge, SystemForge, OmniNotebook), the crossforge interop contract, and other products built on SystemForge. Derived from the api-style-spec default profile with PlexusOne-specific rules for PRN resource references, authorization scopes, run resources, streaming, API audiences, and safe bulk uploads. Self-contained rather than relying on `extends` resolution (the api-style-spec loader treats `extends` as schema-only metadata, not inherited rules) — restated rules cite their source as `default PO-xxx`.
 
 ## Metadata
 
 - **Author:** PlexusOne
-- **Last Updated:** 2026-08-27
+- **Last Updated:** 2026-11-06
 - **License:** MIT
 
 ## Table of Contents
@@ -121,13 +121,13 @@ Bad:
 
 Resource-oriented URL patterns
 
-### PX-003: Use kebab-case URL paths under /api/v{N}/
+### PX-003: Use kebab-case URL paths under a versioned /api prefix
 
 **Severity:** error
 
-Product API paths MUST be kebab-case and live under a versioned prefix /api/v1/ (DashForge convention). Utility endpoints (/health, /livez, /readyz, /docs, /openapi.*, /.well-known/*) are exempt from the version prefix. A genuinely OpenAI-compatible surface (/v1/chat/completions) is governed by the separate omniagent-rest profile, not by an exemption in this rule's pattern — a repo running one adds an explicit path-scoped exception rather than this rule silently accepting any bare /v{N}/... path.
+Product API paths MUST be kebab-case and carry a major version. Two forms are allowed: /api/v{N}/{resources}, the default, where one host serves one API; and /api/{api}/v{N}/{resources}, where one host serves several independently versioned APIs. {api} is a stable kebab-case name for a product capability (billing, identity), never a team or service name, and each one is listed in the consuming repo's API style configuration. A host uses one form, never both. Path parameters are camelCase in braces ({orgSlug}). Utility endpoints (/health, /livez, /readyz, /docs, /openapi.*, /.well-known/*) are exempt from the version prefix. A genuinely OpenAI-compatible surface (/v1/chat/completions) is governed by the separate omniagent-rest profile, not by an exemption in this rule's pattern — a repo running one adds an explicit path-scoped exception rather than this rule silently accepting any bare /v{N}/... path.
 
-**Rationale:** A uniform /api/v{N} prefix across the Forge suite makes versioning explicit and lets the multiapp host route and gate consistently. Kebab-case avoids case-sensitivity issues and matches the org URL convention.
+**Rationale:** A versioned /api prefix makes the contract explicit and lets hosts and gateways route and gate consistently. The default form keeps one version per product: splitting a service into several behind a gateway routes by the first resource segment and changes no public URL. The capability form is for hosts that genuinely serve separate APIs with separate owners and release cycles; naming capabilities rather than teams keeps reorganizations out of URLs. Kebab-case avoids case-sensitivity issues and matches the org URL convention.
 
 **Examples:**
 
@@ -135,6 +135,8 @@ Good:
 
 - `/api/v1/notebooks`
 - `/api/v1/style-profiles/{id}`
+- `/api/v1/organizations/{orgSlug}/files/{sha256}`
+- `/api/billing/v1/invoices (capability form, on a host serving several APIs)`
 - `/health`
 - `/docs`
 
@@ -144,10 +146,13 @@ Bad:
 - `/notebooks (unversioned product endpoint)`
 - `/api/v1/Notebook_Runs`
 - `/v1/users (missing the api/ prefix)`
+- `/api/v1/{org_slug}/projects (snake_case path parameter)`
+- `/api/payments-team/v1/charges (a team name, not a capability)`
 
 **References:**
 
 - [default PO-003/PO-005, DashForge /api/v1 convention]()
+- [Google Cloud APIs: per-service versioned paths on shared hosts]()
 
 ---
 
@@ -246,7 +251,7 @@ JSON payload structure and conventions
 
 **Severity:** error
 
-Resource identifiers MUST be strings with a resource-type prefix (nb_, run_, wf_, agt_). Date-time values MUST be ISO 8601 in UTC (2026-08-27T14:30:00Z); dates as YYYY-MM-DD.
+Resource identifiers MUST be strings with a resource-type prefix (nb_, run_, wf_, agt_). Date-time values MUST be ISO 8601 in UTC (2026-08-27T14:30:00Z); dates as YYYY-MM-DD. A human-readable slug MAY address a resource in paths alongside its ID (/organizations/{orgSlug}) when the slug is unique within its parent and changes only through an explicit rename; responses still return the prefixed ID, and clients that store references store the ID.
 
 **Rationale:** Prefixed string IDs are self-describing in logs and PRNs, support UUID/ULID backends, and avoid integer overflow. ISO 8601 UTC is unambiguous and sortable.
 
@@ -257,6 +262,7 @@ Good:
 - `nb_01J8ZK3V9XQ4`
 - `run_abc123`
 - `2026-08-27T14:30:00Z`
+- `GET /api/v1/organizations/acme (slug in the path; the response carries id: org_01J8ZK…)`
 
 Bad:
 
@@ -267,6 +273,85 @@ Bad:
 **References:**
 
 - [default PO-020/PO-021]()
+
+---
+
+### PX-019: Guard concurrent changes with preconditions
+
+**Severity:** error
+
+An operation that replaces or applies a whole resource, or a document many clients edit, MUST support a precondition so that an update based on a stale copy is refused rather than silently overwriting newer changes. Use ETag with If-Match (412 Precondition Failed on mismatch) for plain resources, or a revision field in the request body (baseRevision, 409 Conflict with the current revision in the problem details) for apply and sync operations whose request is a document. A client MAY deliberately overwrite with an explicit force flag. Responses return the new ETag or revision.
+
+**Rationale:** Last-write-wins loses edits whenever two people, or a person and an agent, change the same thing. A precondition turns that into a visible conflict the client can resolve, and the explicit force flag keeps overwriting a deliberate choice.
+
+**Examples:**
+
+Good:
+
+- `PUT /api/v1/notebooks/{id} with If-Match: "v7" → 412 when the notebook is now at v8`
+- `PUT .../package with baseRevision: 12 → 409 with currentRevision: 13; retried with force: true to overwrite`
+
+Bad:
+
+- `a sync endpoint that applies whatever it receives, discarding edits made since the client's last sync`
+- `returning 200 and a merged result the client never saw`
+
+**References:**
+
+- [RFC 9110 §13.1.1 If-Match; RFC 9457 problem details]()
+
+---
+
+### PX-020: Offer a dry run for bulk and apply operations
+
+**Severity:** warn
+
+An operation that changes many resources at once (apply a document, import, sync, bulk delete) SHOULD accept dryRun (a boolean in the body, or a query parameter for operations without one). A dry run performs every validation and authorization check, returns the same response shape describing what would change, and changes nothing. Removal of resources missing from the request is opt-in (prune) rather than implied.
+
+**Rationale:** Bulk changes are where mistakes are expensive. A dry run lets people and agents preview the effect with the real validation, and opt-in pruning means an incomplete upload never deletes content by omission.
+
+**Examples:**
+
+Good:
+
+- `PUT .../package with dryRun: true → the sections and lessons that would be added, updated and kept`
+- `prune: true required before sections missing from the upload are removed`
+
+Bad:
+
+- `a separate /validate endpoint whose checks drift from the real operation`
+- `an import that deletes everything not in the file`
+
+**References:**
+
+- [Kubernetes server-side dry run]()
+
+---
+
+### PX-021: Upload files by content address
+
+**Severity:** warn
+
+APIs that accept sets of files (document bundles, packages, assets) SHOULD upload each file once by its content address: PUT /api/v1/.../files/{sha256} with the raw bytes (application/octet-stream), idempotent, the server verifying the digest (400 when it does not match) and refusing bodies over a documented limit (413). The client then sends a JSON manifest naming files by digest; the response lists the digests the server does not have, the client uploads only those, and resends the manifest. Files are scoped to the organization, never shared across organizations, and readable only by principals who could read a resource that references them.
+
+**Rationale:** Content addressing makes uploads resumable and incremental: an unchanged file is never sent twice, a retried upload is harmless, and the manifest can be applied atomically once every file is present. Verifying the digest server-side keeps the address trustworthy.
+
+**Examples:**
+
+Good:
+
+- `PUT /api/v1/organizations/{orgSlug}/files/{sha256} (204 when stored or already present)`
+- `PUT .../package → 200 with missing: ["9f86d0…"] until every file is uploaded`
+
+Bad:
+
+- `one multipart request carrying a whole bundle, retried from the start on any failure`
+- `trusting the client's digest without hashing the bytes`
+- `files readable by any organization that knows the digest`
+
+**References:**
+
+- [OCI distribution spec: content-addressed blobs and manifests]()
 
 ---
 
@@ -416,29 +501,59 @@ Bad:
 
 ---
 
-### PX-016: Scope tenancy from the authenticated principal, not the URL
+### PX-016: Authorize tenancy against the principal; an organization in the path is only a selector
 
 **Severity:** warn
 
-Organization/tenant context SHOULD derive from the authenticated SystemForge principal (membership + org), not from client-supplied URL segments or headers. Cross-org access is only expressible via PRNs (which embed the org) and must pass authorization for both principal and target org.
+Organization/tenant context MUST be authorized against the authenticated SystemForge principal (membership + org). When a principal belongs to several organizations, the path MAY select one (/api/v1/organizations/{orgSlug}/...), and the server MUST check the principal's membership and role in that organization on every request. A credential bound to one organization (an API key or an organization-scoped token) MUST be refused for any other organization's paths, whatever its owner could reach. Where a principal has exactly one organization, derive it from the principal and leave it out of the path. Headers are never the tenancy source. Cross-org access is only expressible via PRNs (which embed the org) and must pass authorization for both principal and target org.
 
-**Rationale:** Deriving tenancy from the session/token prevents confused-deputy bugs and matches the SystemForge Organization + RLS model; PRNs make deliberate cross-org references explicit and auditable.
+**Rationale:** Authorizing against the principal prevents confused-deputy bugs and matches the SystemForge Organization + RLS model. A path selector is how people who belong to several organizations address one of them, as GitHub's /orgs/{org} does, and it keeps URLs shareable; binding keys to one organization limits what a leaked key can reach. PRNs make deliberate cross-org references explicit and auditable.
 
 **Examples:**
 
 Good:
 
-- `GET /api/v1/notebooks (org from session)`
+- `GET /api/v1/notebooks (single-org product; org from the session)`
+- `GET /api/v1/organizations/{orgSlug}/projects (membership checked for orgSlug on every request)`
+- `An API key for org acme gets 403 on /api/v1/organizations/other/...`
 - `Explicit cross-org read via prn://plexusone/dashforge/org_other/notebook/nb_1`
 
 Bad:
 
-- `GET /api/v1/orgs/{orgId}/notebooks trusting orgId from the path without principal check`
+- `GET /api/v1/orgs/{orgId}/notebooks trusting orgId from the path without a membership check`
 - `X-Org-ID header as the tenancy source`
+- `An organization-bound API key accepted on another organization's paths`
 
 **References:**
 
 - [SystemForge Organization/RLS model]()
+
+---
+
+### PX-022: Keep unauthenticated endpoints read-only and limited to what is public
+
+**Severity:** error
+
+Operations that need no credentials MUST be read-only (GET), declare security: [] explicitly, and live under a public path segment (/api/v1/public/...) so they are never confused with authenticated routes. They return only what its owner chose to publish (a public profile, a published document, a shared report), never presence or counts that reveal private resources beyond documented aggregates, and are rate limited. A resource that is not public answers 404, exactly as a resource that does not exist.
+
+**Rationale:** Public pages and verification links need data without sign-in, and that surface is the easiest to scrape and probe. Grouping it, keeping it read-only, and answering 404 for anything not public stops it from leaking which private resources exist.
+
+**Examples:**
+
+Good:
+
+- `GET /api/v1/public/orgs/{slug}/certified (only learners with public profiles; total counts documented)`
+- `GET /api/v1/public/orgs/{slug} → 404 for a private organization`
+
+Bad:
+
+- `POST /api/v1/public/... (a write without credentials)`
+- `403 for private resources, confirming that they exist`
+- `a public endpoint returning email addresses`
+
+**References:**
+
+- [OWASP API Security Top 10: API3 broken object property level authorization]()
 
 ---
 
@@ -557,6 +672,34 @@ Bad:
 **References:**
 
 - [default PO-040/PO-028, agent-consumable principle]()
+
+---
+
+### PX-018: Declare each operation's audience with x-audience
+
+**Severity:** error
+
+Every operation MUST declare its audience with the x-audience extension: public (documented for customers and third parties, covered by published SDKs and the compatibility promise of PX-015), first-party (called only by the product's own web and mobile apps), or internal (operators and service-to-service). Public operations are held to the full conformance level in every repo; a repo MAY record path-scoped exceptions for first-party and internal operations while they migrate. Moving an operation to public is a reviewed change: it must already conform.
+
+**Rationale:** A product's API usually mixes a small surface customers depend on with a larger one only its own apps call. Marking the audience in the contract lets documentation, SDK generation, agent tool loaders and lint strictness follow it, and makes promoting an operation to public a deliberate act rather than an accident of it being reachable.
+
+**Examples:**
+
+Good:
+
+- `putDocumentBundle with x-audience: public`
+- `the web app's dashboard feed with x-audience: first-party`
+- `a reindex job trigger with x-audience: internal`
+
+Bad:
+
+- `an operation with no x-audience`
+- `x-audience: external (not one of the three values)`
+- `an operation documented for customers but marked first-party`
+
+**References:**
+
+- [Zalando API guidelines: x-audience (rule 219)]()
 
 ---
 
