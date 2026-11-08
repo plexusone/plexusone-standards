@@ -25,7 +25,7 @@ levels minimum/standard/exemplary.
 
 **Theme:** One standards repo, domain directories, nothing breaks
 
-- [ ] `RMI-PLEXUSONESTANDARDS-001` Move design-system content into design-system/ (design-system.json, agents/, loops/, examples/, llm-context.md), update package.json name and internal paths, root README as domain index
+- [x] `RMI-PLEXUSONESTANDARDS-001` Move design-system content into design-system/ (design-system.json, agents/, loops/, examples/, llm-context.md), update package.json name and internal paths, root README as domain index
 - [ ] `RMI-PLEXUSONESTANDARDS-002` Update external references to the old repo name/paths (website build, any CI consumers); adopt conventional-commit scopes (api, design-system) in CHANGELOG.json workflow
   - Depends on: `RMI-PLEXUSONESTANDARDS-001`
 
@@ -33,13 +33,13 @@ levels minimum/standard/exemplary.
 
 **Theme:** The plexusone-rest profile — machine-readable house rules, generated artifacts
 
-- [ ] `RMI-PLEXUSONESTANDARDS-003` Author api/rest/plexusone-rest.api-style.json profile: PX rules for Go-first OpenAPI 3.1, naming, errors, pagination, SystemForge auth and scopes, PRN references, run resources, SSE, versioning; conformance levels
+- [x] `RMI-PLEXUSONESTANDARDS-003` Author api/rest/plexusone-rest.api-style.json profile: PX rules for Go-first OpenAPI 3.1, naming, errors, pagination, SystemForge auth and scopes, PRN references, run resources, SSE, versioning; conformance levels
   - Depends on: `RMI-PLEXUSONESTANDARDS-001`
 - [ ] `RMI-PLEXUSONESTANDARDS-004` Generated artifacts and validation: spectral ruleset + LLM rubric + Markdown guide via api-style generate, schema-validate the profile, lint an exemplar spec; resolve omniagent-rest's dangling basedOn pointer to this profile's location
   - Depends on: `RMI-PLEXUSONESTANDARDS-003`
-- [ ] `RMI-PLEXUSONESTANDARDS-005` Naming-conventions standard: omni*/forge/*-core module naming rules, plain functional names otherwise; PRN and scope grammar cross-references to resourceref and crossforge
+- [x] `RMI-PLEXUSONESTANDARDS-005` Naming-conventions standard: omni*/forge/*-core module naming rules, plain functional names otherwise; PRN and scope grammar cross-references to resourceref and crossforge
   - Depends on: `RMI-PLEXUSONESTANDARDS-001`
-- [ ] `RMI-PLEXUSONESTANDARDS-006` PRN instance profile (resourceref/ domain): prn scheme definition against the resourceref profile format — authorities, path shapes, resource-type registries, version/alias rules; schema-validated in CI
+- [x] `RMI-PLEXUSONESTANDARDS-006` PRN instance profile (resourceref/ domain): prn scheme definition against the resourceref profile format — authorities, path shapes, resource-type registries, version/alias rules; schema-validated in CI
   - Depends on: `RMI-PLEXUSONESTANDARDS-001`
 
 ## Phase 3 — Adoption in Forge Repos
@@ -57,5 +57,5 @@ levels minimum/standard/exemplary.
 
 **Theme:** plexusone-rest covers every product built on SystemForge, including APIs published to customers
 
-- [ ] `RMI-PLEXUSONESTANDARDS-007` plexusone-rest v1.1.0: the `/api/{api}/v{N}/` path form beside the `/api/v{N}/` default, camelCase path parameters, organization selectors in paths authorized against the principal, slugs as alternate keys, and new rules for operation audiences, preconditions, dry runs, content-addressed uploads and unauthenticated endpoints
+- [x] `RMI-PLEXUSONESTANDARDS-007` plexusone-rest v1.1.0: the `/api/{api}/v{N}/` path form beside the `/api/v{N}/` default, camelCase path parameters, organization selectors in paths authorized against the principal, slugs as alternate keys, and new rules for operation audiences, preconditions, dry runs, content-addressed uploads and unauthenticated endpoints
   - Depends on: `RMI-PLEXUSONESTANDARDS-004`

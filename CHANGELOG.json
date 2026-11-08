@@ -8,25 +8,34 @@
   "releases": [
     {
       "version": "v0.2.0",
-      "date": "2026-08-29",
-      "commit": "d38057e",
+      "date": "2026-11-08",
+      "commit": "cdb1e44",
       "highlights": [
-        { "description": "Restructured into a multi-domain standards repo (design-system, api/rest, resourceref, naming) and added the plexusone-rest REST API style profile and the prn resource-reference scheme instance" }
+        { "description": "Restructured into a multi-domain standards repo (design-system, api/rest, resourceref, naming) and added the plexusone-rest REST API style profile and the prn resource-reference scheme instance" },
+        { "description": "plexusone-rest v1.1.0: 22 rules, adding capability-scoped /api/{api}/v{N}/ paths beside /api/v{N}/, organization selectors authorized against the principal, operation audiences, preconditions, dry runs, content-addressed uploads and read-only public endpoints" }
       ],
       "added": [
-        { "description": "api/rest/plexusone-rest.api-style.json: 17-rule REST API style profile covering naming, errors, pagination, SystemForge auth/scopes, PRN references, run resources, streaming, and versioning, with 3 conformance levels", "commit": "e2e138c" },
-        { "description": "Generated api/rest/plexusone-rest.{spectral.yaml,rubric.json,guide.md} artifacts from the API style profile", "commit": "5948afe" },
-        { "description": "resourceref/prn-profile.json: the real prn resource-reference scheme instance (authorities, tenant-scoped and ecosystem-artifact shapes, resourceType registries for dashforge and actionforge, version/alias grammar), validated by a Go test module against resourceref's scheme engine", "commit": "09823a5" },
-        { "description": "naming/README.md: module and product naming-conventions standard (omni*, *forge, *-core, plain functional names) with PRN/scope grammar cross-references", "commit": "d38057e" }
+        { "description": "api/rest/plexusone-rest.api-style.json: 17-rule REST API style profile covering naming, errors, pagination, SystemForge auth/scopes, PRN references, run resources, streaming, and versioning, with 3 conformance levels", "commit": "be02769" },
+        { "description": "Generated api/rest/plexusone-rest.{spectral.yaml,rubric.json,guide.md} artifacts from the API style profile", "commit": "1e1ca35" },
+        { "description": "resourceref/prn-profile.json: the real prn resource-reference scheme instance (authorities, tenant-scoped and ecosystem-artifact shapes, resourceType registries for dashforge and actionforge, version/alias grammar), validated by a Go test module against resourceref's scheme engine", "commit": "34e3e14" },
+        { "description": "naming/README.md: module and product naming-conventions standard (omni*, *forge, *-core, plain functional names) with PRN/scope grammar cross-references", "commit": "0a776a1" },
+        { "description": "api/rest PX-018 to PX-022: every operation declares x-audience (public, first-party or internal); whole-resource replacements take a precondition; bulk and apply operations offer a dry run with opt-in pruning; file sets upload by content address; unauthenticated endpoints are read-only under /public/", "commit": "8a0574d" }
       ],
       "changed": [
-        { "description": "Restructured repo into domain directories: design-system.json, package.json, agents/, examples/, loops/, and llm-context.md moved into design-system/; root README became a cross-domain index", "commit": "0b4f833" }
+        { "description": "Restructured repo into domain directories: design-system.json, package.json, agents/, examples/, loops/, and llm-context.md moved into design-system/; root README became a cross-domain index", "commit": "4047bf4" },
+        { "description": "api/rest PX-003 allows /api/{api}/v{N}/ beside the /api/v{N}/ default and camelCase path parameters; PX-009 allows a stable slug beside the ID; PX-016 lets the path select an organization, authorized against the principal on every request. Profile version 1.1.0", "commit": "5259c4a" }
       ],
       "fixed": [
-        { "description": "api/rest PX-003 URL-pattern rule: removed an overly permissive bare /v{N}/... alternative that silently accepted any unversioned path, caught by linting an api-style-spec exemplar before and after the fix", "commit": "5948afe" }
+        { "description": "api/rest PX-003 URL-pattern rule: removed an overly permissive bare /v{N}/... alternative that silently accepted any unversioned path, caught by linting an api-style-spec exemplar before and after the fix", "commit": "1e1ca35" }
+      ],
+      "documentation": [
+        { "description": "api/rest README: versioned path forms and API audiences, with an .api-style.yaml example", "commit": "88ce21b" }
+      ],
+      "build": [
+        { "description": "resourceref requires a published github.com/plexusone/resourceref version instead of a replace to a sibling checkout, so the module builds from a clean clone", "commit": "cdb1e44" }
       ],
       "internal": [
-        { "description": "Updated CHANGELOG.json/CHANGELOG.md self-references from plexusone-design-system to plexusone-standards; documented the per-domain commit-scope convention", "commit": "1b7bce1" }
+        { "description": "Updated CHANGELOG.json/CHANGELOG.md self-references from plexusone-design-system to plexusone-standards; documented the per-domain commit-scope convention", "commit": "d237ef9" }
       ]
     },
     {
